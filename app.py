@@ -161,14 +161,14 @@ st.markdown("### 📝 Στατιστικά Ομάδων")
 c1, c2 = st.columns(2)
 with c1:
     st.markdown(f'**🏠 Γηπεδούχος** <span class="pos-badge">{h_pos*100:.1f}% Positive</span>', unsafe_allow_html=True)
-    st.number_input("Νίκες", 0, 100, key="hw")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd")
-    st.number_input("Ήττες", 0, 100, key="hl")
+    st.number_input("Εντός_Νίκες", 0, 100, key="hw")
+    st.number_input("Εντός_Ισοπαλίες", 0, 100, key="hd")
+    st.number_input("Εντός_Ήττες", 0, 100, key="hl")
 with c2:
     st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Positive</span>', unsafe_allow_html=True)
-    st.number_input("Νίκες (A)", 0, 100, key="aw")
-    st.number_input("Ισοπαλίες (A)", 0, 100, key="ad")
-    st.number_input("Ήττες (A)", 0, 100, key="al")
+    st.number_input("Εκτός_Νίκες (A)", 0, 100, key="aw")
+    st.number_input("Εκτός_Ισοπαλίες (A)", 0, 100, key="ad")
+    st.number_input("Εκτός_Ήττες (A)", 0, 100, key="al")
 
 # ==============================
 # CHART (ΔΙΟΡΘΩΜΕΝΟ ΜΕ ΣΤΗΛΗ Χ)
@@ -179,7 +179,7 @@ with st.expander("📊 Ανάλυση & Γράφημα", expanded=True):
     
     # Market Bar
     fig.add_trace(go.Bar(
-        name='Market', 
+        name='Booker_Odds', 
         x=x_labels, 
         y=[prob_1*100, prob_X*100, prob_2*100], 
         marker_color='#FF4B4B', 
@@ -189,7 +189,7 @@ with st.expander("📊 Ανάλυση & Γράφημα", expanded=True):
     
     # Real Stats Bar - Εξασφάλιση εμφάνισης Real_X
     fig.add_trace(go.Bar(
-        name='Stats', 
+        name='Performance_Stats', 
         x=x_labels, 
         y=[real_1*100, real_X*100, real_2*100], 
         marker_color='#0083B0', 
