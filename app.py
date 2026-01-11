@@ -33,6 +33,8 @@ st.markdown("""
         background: #1e3c72; color: white; padding: 2px 8px; 
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
     }
+    /* Guide Styles */
+    .guide-item { padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -103,12 +105,10 @@ if is_blind:
     proposal = "1X" if prob_1 >= prob_2 else "X2"
 else:
     real_1 = st.session_state.hw/h_total if h_total > 0 else 0
-    # Σωστός υπολογισμός Real X βάσει συνολικών ισοπαλιών
     real_X = (st.session_state.hd + st.session_state.ad)/total_all if total_all > 0 else 0
     real_2 = st.session_state.aw/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-    # --- CORE LOGIC HIERARCHY v12.12.10 ---
     if real_X >= 0.40:
         if a_pos >= 2 * h_pos and a_pos > 0: proposal = "X (X2)"
         else: proposal = "X (1X)"
@@ -132,10 +132,17 @@ else:
 
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 
+# DYNAMIC COLOR LOGIC BASED ON YOUR OBSERVATIONS
+if confidence >= 80:
+    color = "#2ecc71" # Πράσινο
+elif confidence >= 60:
+    color = "#f1c40f" # Κίτρινο/Πορτοκαλί
+else:
+    color = "#e74c3c" # Κόκκινο
+
 # ==============================
 # STICKY HEADER & RESULTS
 # ==============================
-color = "#f1c40f" if confidence < 75 else "#2ecc71"
 st.markdown(f"""
 <div class="sticky-result">
     <div class="result-card">
@@ -171,13 +178,14 @@ with c2:
     st.number_input("Εκτός_Ήττες (A)", 0, 100, key="al")
 
 # ==============================
-# CHART (ΔΙΟΡΘΩΜΕΝΟ ΜΕ ΣΤΗΛΗ Χ)
+# TABS: ANALYSIS & STRATEGY
 # ==============================
-with st.expander("📊 Ανάλυση & Γράφημα", expanded=True):
+tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
+
+with tab1:
     fig = go.Figure()
     x_labels = ["1", "X", "2"]
     
-    # Market Bar
     fig.add_trace(go.Bar(
         name='Booker_Odds', 
         x=x_labels, 
@@ -187,7 +195,6 @@ with st.expander("📊 Ανάλυση & Γράφημα", expanded=True):
         textposition='auto'
     ))
     
-    # Real Stats Bar - Εξασφάλιση εμφάνισης Real_X
     fig.add_trace(go.Bar(
         name='Performance_Stats', 
         x=x_labels, 
@@ -201,7 +208,23 @@ with st.expander("📊 Ανάλυση & Γράφημα", expanded=True):
         barmode='group', 
         height=350, 
         margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(type='category'), # Επιβάλλει την εμφάνιση και των 3 κατηγοριών
+        xaxis=dict(type='category'),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     st.plotly_chart(fig, use_container_width=True)
+
+with tab2:
+    st.markdown("""
+    <div class="guide-item" style="border-left: 5px solid #2ecc71; background: rgba(46, 204, 113, 0.1);">
+        <strong style="color: #2ecc71;">Confidence >80% (Πράσινο):</strong><br>
+        Θεώρησέ το ως την "Κύρια Επιλογή" σου. Είναι τα ματς όπου η στατιστική "ασφάλεια" είναι στο μέγιστο επίπεδο.
+    </div>
+    <div class="guide-item" style="border-left: 5px solid #f1c40f; background: rgba(241, 196, 15, 0.1);">
+        <strong style="color: #d4ac0d;">Confidence 70-79% (Κίτρινο/Πορτοκαλί):</strong><br>
+        Είναι τα ματς για "κάλυψη" (π.χ. αν προτείνει 1, ίσως το 1Χ να είναι πιο σοφό) ή για μικρότερο ποντάρισμα.
+    </div>
+    <div class="guide-item" style="border-left: 5px solid #e74c3c; background: rgba(231, 76, 60, 0.1);">
+        <strong style="color: #e74c3c;">Confidence <60% (Κόκκινο):</strong><br>
+        Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
+    </div>
+    """, unsafe_allow_html=True)
