@@ -140,21 +140,23 @@ else:
     color = "#e74c3c"
 
 # ==============================
-# STICKY HEADER & RESULTS (ULTIMATE FIX v12.12.11)
+# STICKY HEADER & RESULTS (WIDE BAR FIX v12.12.11)
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
 <div class="result-card" style="text-align: center; padding: 15px; border: 2px solid #1e3c72; border-radius: 15px; background: white;">
 <div style="font-size: 0.75rem; color: #666; font-weight:bold; margin-bottom: 5px;">{mode_label}</div>
-<div style="font-size: 3rem; font-weight: 900; color: #1e3c72; line-height: 1; margin-bottom: 15px;">{proposal}</div>
-<div style="display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 480px; margin: 0 auto; padding-right: 40px;">
-<div style="flex-grow: 1; height: 30px; background: #f0f2f6; position: relative; border-radius: 15px; border: 1px solid #ddd; overflow: hidden;">
-<div style="width: {confidence}%; background: {color}; height: 100%;"></div>
+<div style="font-size: 3.5rem; font-weight: 900; color: #1e3c72; line-height: 1; margin-bottom: 10px;">{proposal}</div>
+<div style="max-width: 550px; margin: 0 auto;">
+<div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+<span style="font-size: 1.4rem; font-weight: 900; color: {color};">{confidence}%</span>
+</div>
+<div style="width: 100%; height: 32px; background: #f0f2f6; position: relative; border-radius: 16px; border: 1px solid #ddd; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+<div style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s ease-in-out;"></div>
 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-<span style="color: white; font-weight: 850; font-size: 0.85rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 1px;">CONFIDENCE BAR</span>
+<span style="color: white; font-weight: 850; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 1.5px;">CONFIDENCE BAR</span>
 </div>
 </div>
-<div style="font-size: 1.6rem; font-weight: 900; color: {color}; min-width: 65px; text-align: left;">{confidence}%</div>
 </div>
 </div>
 </div>
