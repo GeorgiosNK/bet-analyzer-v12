@@ -140,15 +140,15 @@ else:
     color = "#e74c3c"
 
 # ==============================
-# STICKY HEADER & RESULTS (ALIGNMENT FIX v12.12.11)
+# STICKY HEADER & RESULTS (FINAL ALIGNMENT v12.12.11)
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
-    <div class="result-card" style="display: flex; flex-direction: column; align-items: center;">
-        <div style="font-size: 0.75rem; color: #666; font-weight:bold;">{mode_label}</div>
-        <div style="font-size: 2.8rem; font-weight: 900; color: #1e3c72; margin: 0px 0px 10px 0px; line-height: 1;">{proposal}</div>
+    <div class="result-card" style="display: flex; flex-direction: column; align-items: center; padding: 15px;">
+        <div style="font-size: 0.75rem; color: #666; font-weight:bold; margin-bottom: 5px;">{mode_label}</div>
+        <div style="font-size: 2.8rem; font-weight: 900; color: #1e3c72; line-height: 1; margin-bottom: 15px;">{proposal}</div>
         
-        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; max-width: 500px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; max-width: 450px;">
             <div class="conf-bar" style="flex-grow: 1; height: 28px; background: #f0f2f6; position: relative; border-radius: 14px; border: 1px solid #ddd; overflow: hidden;">
                 <div class="conf-fill" style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s ease-in-out;"></div>
                 <div style="position: absolute; width: 100%; top: 0; left: 0; height: 100%; display: flex; align-items: center; justify-content: center;">
@@ -157,7 +157,7 @@ st.markdown(f"""
                     </span>
                 </div>
             </div>
-            <div style="font-size: 1.4rem; font-weight: 800; color: {color}; min-width: 65px; text-align: left;">{confidence}%</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: {color}; min-width: 60px; text-align: left;">{confidence}%</div>
         </div>
     </div>
 </div>
