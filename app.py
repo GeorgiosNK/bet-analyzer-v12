@@ -140,23 +140,37 @@ else:
     color = "#e74c3c"
 
 # ==============================
-# STICKY HEADER & RESULTS (CLEAN ALIGNMENT v12.12.11)
+# STICKY HEADER & RESULTS (CENTER FIX v12.12.11)
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
-<div class="result-card" style="text-align: center; padding: 15px; border: 2px solid #1e3c72; border-radius: 15px;">
-<div style="font-size: 0.75rem; color: #666; font-weight:bold; margin-bottom: 5px;">{mode_label}</div>
-<div style="font-size: 3rem; font-weight: 900; color: #1e3c72; line-height: 1.1; margin-bottom: 15px;">{proposal}</div>
-<div style="display: flex; align-items: center; justify-content: center; gap: 15px; max-width: 450px; margin: 0 auto;">
-<div style="flex-grow: 1; height: 28px; background: #f0f2f6; position: relative; border-radius: 14px; border: 1px solid #ddd; overflow: hidden;">
-<div style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s ease-in-out;"></div>
-<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-<span style="color: white; font-weight: 800; font-size: 0.85rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 1px;">CONFIDENCE BAR</span>
-</div>
-</div>
-<div style="font-size: 1.5rem; font-weight: 900; color: {color}; min-width: 65px; text-align: left;">{confidence}%</div>
-</div>
-</div>
+    <div class="result-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; width: 100%;">
+        
+        <div style="font-size: 0.75rem; color: #666; font-weight:bold; margin-bottom: 5px; width: 100%;">
+            {mode_label}
+        </div>
+        
+        <div style="font-size: 3rem; font-weight: 900; color: #1e3c72; line-height: 1; margin-bottom: 20px; width: 100%;">
+            {proposal}
+        </div>
+        
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; max-width: 480px; margin: 0 auto;">
+            
+            <div style="flex-grow: 1; height: 28px; background: #f0f2f6; position: relative; border-radius: 14px; border: 1px solid #ddd; overflow: hidden;">
+                <div style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s ease-in-out;"></div>
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                    <span style="color: white; font-weight: 800; font-size: 0.85rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 1px; white-space: nowrap;">
+                        CONFIDENCE BAR
+                    </span>
+                </div>
+            </div>
+            
+            <div style="font-size: 1.5rem; font-weight: 900; color: {color}; min-width: 65px; text-align: left;">
+                {confidence}%
+            </div>
+            
+        </div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
