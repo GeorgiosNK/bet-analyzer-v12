@@ -25,9 +25,9 @@ st.markdown("""
         border-left: 5px solid #1e3c72; margin-bottom: 20px; font-size: 0.95rem;
     }
     .warning-box {
-        background-color: #fff3cd; color: #856404; padding: 10px; 
-        border-radius: 5px; border: 1px solid #ffeeba; margin-top: 10px; font-weight: bold;
-        text-align: center;
+        background-color: #fff3cd; color: #856404; padding: 12px; 
+        border-radius: 8px; border: 1px solid #ffeeba; margin-top: 10px; 
+        font-weight: bold; text-align: center; font-size: 0.9rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -36,7 +36,7 @@ st.markdown("""
 st.markdown("""
 <div class="info-text">
     <strong>⚽ Bet Analyzer Pro: Σύστημα Στατιστικής Ανάλυσης Αγώνων</strong><br>
-    Το Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats). Στόχος της είναι να εντοπίζει την αξία (Value) και να προτείνει σημεία με την υψηλότερη πιθανότητα επιβεβαίωσης.
+    Το Bet Analyzer συνδυάζει Market Odds και Real Stats. Η έκδοση v12.12.9 δίνει προτεραιότητα στα θετικά αποτελέσματα (Wins + Draws) και στην ισχύ της έδρας.
 </div>
 """, unsafe_allow_html=True)
 
@@ -60,7 +60,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.12.9")
+    st.caption("Version 12.12.9 • Priority Logic Fixed")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
@@ -102,7 +102,7 @@ else:
     a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-    # --- CORE LOGIC HIERARCHY ---
+    # --- CORE LOGIC HIERARCHY v12.12.9 ---
     if real_X >= 0.40:
         if a_pos >= 2 * h_pos and a_pos > 0:
             proposal = "X (X2)"
@@ -117,7 +117,8 @@ else:
     elif h_pos >= 2 * a_pos and h_pos > 0:
         proposal = "1X"
     else:
-        proposal = "1X" if real_1 >= real_2 else "X2"
+        # Διόρθωση: Σύγκριση Positive Percentage αντί για σκέτες νίκες
+        proposal = "1X" if h_pos >= a_pos else "X2"
 
     # Safety Net Rule
     if (real_1 + real_2) < 0.40:
@@ -130,7 +131,6 @@ confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2
 # ==============================
 color = "#f1c40f" if confidence < 75 else "#2ecc71"
 
-# Κύρια Κάρτα Αποτελέσματος
 st.markdown(f"""
 <div class="sticky-result">
     <div class="result-card">
@@ -146,7 +146,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Εμφάνιση Warning μόνο αν υπάρχει (εκτός του κύριου Sticky για αποφυγή bugs)
 if warning_msg:
     st.markdown(f'<div class="warning-box">{warning_msg}</div>', unsafe_allow_html=True)
 
