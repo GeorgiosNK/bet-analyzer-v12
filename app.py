@@ -40,7 +40,7 @@ st.markdown("""
 st.markdown("""
 <div class="info-text">
     <strong>⚽ Bet Analyzer Pro v12.12.10</strong><br>
-    Η εφαρμογή αναλύει πλέον το <strong>Positive Percentage (Wins + Draws)</strong> ως κύριο παράγοντα πρόβλεψης.
+    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
 
@@ -64,7 +64,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.12.9 • Live Positive %")
+    st.caption("Version 12.12.10 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
