@@ -34,8 +34,8 @@ st.markdown("""
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.12.9</strong><br>
-    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats). Στόχος της είναι να εντοπίζει την αξία (Value) και να προτείνει σημεία με την υψηλότερη πιθανότητα επιβεβαίωσης.
+    <strong>⚽ Bet Analyzer Pro: Σύστημα Στατιστικής Ανάλυσης Αγώνων</strong><br>
+    Το Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats). Στόχος της είναι να εντοπίζει την αξία (Value) και να προτείνει σημεία με την υψηλότερη πιθανότητα επιβεβαίωσης.
 </div>
 """, unsafe_allow_html=True)
 
@@ -59,9 +59,9 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.12.9 • Logic Fixed")
+    st.caption("Version 12.12.9 • Full Logic Fix")
     st.divider()
-    st.button("Sweep Stats & Odds", on_click=reset_everything, use_container_width=True)
+    st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
     st.header("📊 Αποδόσεις (Odds)")
     o1_raw = st.text_input("Άσος (1)", key="o1_val")
@@ -101,13 +101,13 @@ else:
     a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-    # --- CORE LOGIC HIERARCHY v12.12.9 ---
+    # --- CORE LOGIC HIERARCHY (Fixed) ---
     if real_X >= 0.40:
-        # Draw Flag Rule with Correct Coverage Logic
+        # Draw Flag Rule with Home Priority Correction
         if a_pos >= 2 * h_pos and a_pos > 0:
             proposal = "X (X2)"
         else:
-            proposal = "X (1X)" # Default to Home Priority
+            proposal = "X (1X)"
     elif real_X < 0.15:
         proposal = "1-2"
     elif real_1 > 0.45 and real_2 > 0.45:
@@ -117,7 +117,6 @@ else:
     elif h_pos >= 2 * a_pos and h_pos > 0:
         proposal = "1X"
     else:
-        # Priority to Home if stats are balanced
         proposal = "1X" if real_1 >= real_2 else "X2"
 
     # Safety Net Rule
@@ -127,9 +126,11 @@ else:
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 
 # ==============================
-# STICKY HEADER
+# STICKY HEADER (UI FIX)
 # ==============================
 color = "#f1c40f" if confidence < 75 else "#2ecc71"
+warning_html = f'<div class="warning-box">{warning_msg}</div>' if warning_msg else ''
+
 st.markdown(f"""
 <div class="sticky-result">
     <div class="result-card">
@@ -141,7 +142,7 @@ st.markdown(f"""
             </div>
             <div style="font-size: 1.2rem; font-weight: 800; color: {color};">{confidence}%</div>
         </div>
-        {f'<div class="warning-box">{warning_msg}</div>' if warning_msg else ''}
+        {warning_html}
     </div>
 </div>
 """, unsafe_allow_html=True)
