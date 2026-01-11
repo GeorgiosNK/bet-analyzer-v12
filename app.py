@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.12.9 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.12.10 PRO", page_icon="⚽", layout="centered")
 
 st.markdown("""
 <style>
@@ -29,14 +29,18 @@ st.markdown("""
         border-radius: 8px; border: 1px solid #ffeeba; margin-top: 10px; 
         font-weight: bold; text-align: center; font-size: 0.9rem;
     }
+    .pos-badge {
+        background: #1e3c72; color: white; padding: 2px 8px; 
+        border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro: Σύστημα Στατιστικής Ανάλυσης Αγώνων</strong><br>
-    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
+    <strong>⚽ Bet Analyzer Pro v12.12.10</strong><br>
+    Η εφαρμογή αναλύει πλέον το <strong>Positive Percentage (Wins + Draws)</strong> ως κύριο παράγοντα πρόβλεψης.
 </div>
 """, unsafe_allow_html=True)
 
@@ -60,7 +64,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.12.9")
+    st.caption("Version 12.12.9 • Live Positive %")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
@@ -77,7 +81,7 @@ with st.sidebar:
         ace_odds = draw_odds = double_odds = 1.00
 
 # ==============================
-# LOGIC ENGINE (v12.12.9)
+# LOGIC ENGINE
 # ==============================
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -88,21 +92,21 @@ is_blind = (total_all == 0)
 inv_odds = (1/ace_odds + 1/draw_odds + 1/double_odds)
 prob_1, prob_X, prob_2 = (1/ace_odds)/inv_odds, (1/draw_odds)/inv_odds, (1/double_odds)/inv_odds
 
+h_pos = (st.session_state.hw + st.session_state.hd)/h_total if h_total > 0 else 0
+a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
+
 warning_msg = ""
 if is_blind:
     real_1, real_X, real_2 = prob_1, prob_X, prob_2
-    h_pos, a_pos = 0.5, 0.5
     mode_label = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ"
     proposal = "1X" if prob_1 >= prob_2 else "X2"
 else:
     real_1 = st.session_state.hw/h_total if h_total > 0 else 0
     real_X = (st.session_state.hd + st.session_state.ad)/total_all if total_all > 0 else 0
     real_2 = st.session_state.aw/a_total if a_total > 0 else 0
-    h_pos = (st.session_state.hw + st.session_state.hd)/h_total if h_total > 0 else 0
-    a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-    # --- CORE LOGIC HIERARCHY v12.12.9 ---
+    # --- CORE LOGIC HIERARCHY ---
     if real_X >= 0.40:
         if a_pos >= 2 * h_pos and a_pos > 0:
             proposal = "X (X2)"
@@ -110,17 +114,13 @@ else:
             proposal = "X (1X)"
     elif real_X < 0.15:
         proposal = "1-2"
-    elif real_1 > 0.45 and real_2 > 0.45:
-        proposal = "1-2"
     elif a_pos >= 2 * h_pos and a_pos > 0:
         proposal = "X2"
     elif h_pos >= 2 * a_pos and h_pos > 0:
         proposal = "1X"
     else:
-        # Διόρθωση: Σύγκριση Positive Percentage αντί για σκέτες νίκες
         proposal = "1X" if h_pos >= a_pos else "X2"
 
-    # Safety Net Rule
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
 
@@ -130,7 +130,6 @@ confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2
 # STICKY HEADER
 # ==============================
 color = "#f1c40f" if confidence < 75 else "#2ecc71"
-
 st.markdown(f"""
 <div class="sticky-result">
     <div class="result-card">
@@ -150,20 +149,22 @@ if warning_msg:
     st.markdown(f'<div class="warning-box">{warning_msg}</div>', unsafe_allow_html=True)
 
 # ==============================
-# MAIN INPUTS
+# MAIN INPUTS WITH POSITIVE % BADGES
 # ==============================
 st.markdown("### 📝 Στατιστικά Ομάδων")
 c1, c2 = st.columns(2)
+
 with c1:
-    st.markdown("**🏠 Γηπεδούχος**")
-    st.number_input("Εντός_Νίκες (H)", 0, 100, key="hw")
-    st.number_input("Εντός_Ισοπαλίες (H)", 0, 100, key="hd")
-    st.number_input("Εντός_Ήττες (H)", 0, 100, key="hl")
+    st.markdown(f'**🏠 Γηπεδούχος** <span class="pos-badge">{h_pos*100:.1f}% Pos</span>', unsafe_allow_html=True)
+    st.number_input("Νίκες", 0, 100, key="hw")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd")
+    st.number_input("Ήττες", 0, 100, key="hl")
+
 with c2:
-    st.markdown("**🚀 Φιλοξενούμενος**")
-    st.number_input("Εκτός_Νίκες (A)", 0, 100, key="aw")
-    st.number_input("Εκτός_Ισοπαλίες (A)", 0, 100, key="ad")
-    st.number_input("Εκτός_Ήττες (A)", 0, 100, key="al")
+    st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Pos</span>', unsafe_allow_html=True)
+    st.number_input("Νίκες (A)", 0, 100, key="aw")
+    st.number_input("Ισοπαλίες (A)", 0, 100, key="ad")
+    st.number_input("Ήττες (A)", 0, 100, key="al")
 
 # ==============================
 # CHART
@@ -171,23 +172,7 @@ with c2:
 with st.expander("📊 Ανάλυση & Γράφημα", expanded=True):
     fig = go.Figure()
     x_labels = ["1", "X", "2"]
-    
-    fig.add_trace(go.Bar(
-        name='Market', x=x_labels, y=[prob_1*100, prob_X*100, prob_2*100], 
-        marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"],
-        textposition='inside', insidetextfont=dict(color='white', size=12, family="Arial Black")
-    ))
-    
-    fig.add_trace(go.Bar(
-        name='Stats', x=x_labels, y=[real_1*100, real_X*100, real_2*100], 
-        marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"],
-        textposition='inside', insidetextfont=dict(color='white', size=12, family="Arial Black")
-    ))
-
-    fig.update_layout(
-        barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(type='category', tickmode='array', tickvals=x_labels),
-        yaxis=dict(range=[0, 100]),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
+    fig.add_trace(go.Bar(name='Market', x=x_labels, y=[prob_1*100, prob_X*100, prob_2*100], marker_color='#FF4B4B'))
+    fig.add_trace(go.Bar(name='Stats', x=x_labels, y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0'))
+    fig.update_layout(barmode='group', height=300, margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, use_container_width=True)
