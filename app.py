@@ -160,7 +160,7 @@ if warning_msg:
 st.markdown("### 📝 Στατιστικά Ομάδων")
 c1, c2 = st.columns(2)
 with c1:
-    st.markdown(f'**🏠 Γηπεδούχος** <span class="possitive-badge">{h_pos*100:.1f}% Pos</span>', unsafe_allow_html=True)
+    st.markdown(f'**🏠 Γηπεδούχος** <span class="pos-badge">{h_pos*100:.1f}% Positive</span>', unsafe_allow_html=True)
     st.number_input("Νίκες", 0, 100, key="hw")
     st.number_input("Ισοπαλίες", 0, 100, key="hd")
     st.number_input("Ήττες", 0, 100, key="hl")
