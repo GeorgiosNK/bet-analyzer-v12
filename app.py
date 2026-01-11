@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.12.8 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.12.9 PRO", page_icon="⚽", layout="centered")
 
 st.markdown("""
 <style>
@@ -24,14 +24,18 @@ st.markdown("""
         background-color: #e8f0fe; padding: 15px; border-radius: 10px;
         border-left: 5px solid #1e3c72; margin-bottom: 20px; font-size: 0.95rem;
     }
+    .warning-box {
+        background-color: #fff3cd; color: #856404; padding: 10px; 
+        border-radius: 5px; border: 1px solid #ffeeba; margin-top: 10px; font-weight: bold;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro: Σύστημα Στατιστικής Ανάλυσης Αγώνων</strong><br>
-    Το Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats). Στόχος της είναι να εντοπίζει την αξία (Value) και να προτείνει σημεία με την υψηλότερη πιθανότητα επιβεβαίωσης.
+    <strong>⚽ Bet Analyzer Pro v12.12.9</strong><br>
+    Επιπέδου Elite σύστημα ανάλυσης. Περιλαμβάνει διορθωμένη ιεραρχία Home Priority, Draw Flags (>40%) και Safety Net για χαμηλά στατιστικά.
 </div>
 """, unsafe_allow_html=True)
 
@@ -44,10 +48,8 @@ if 'o1_val' not in st.session_state:
     st.session_state.update({'o1_val': "1.00", 'ox_val': "1.00", 'o2_val': "1.00"})
 
 def reset_everything():
-    # Επαναφορά στατιστικών
     for k in ['hw','hd','hl','aw','ad','al']: 
         st.session_state[k] = 0
-    # Επαναφορά αποδόσεων στο 1.00
     st.session_state.o1_val = "1.00"
     st.session_state.ox_val = "1.00"
     st.session_state.o2_val = "1.00"
@@ -57,11 +59,9 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.12.8 • Full Reset Support")
+    st.caption("Version 12.12.9 • Logic Fixed")
     st.divider()
-    
-    # Το κουμπί τώρα καλεί τη συνάρτηση που τα μηδενίζει όλα
-    st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
+    st.button("Sweep Stats & Odds", on_click=reset_everything, use_container_width=True)
     
     st.header("📊 Αποδόσεις (Odds)")
     o1_raw = st.text_input("Άσος (1)", key="o1_val")
@@ -69,8 +69,6 @@ with st.sidebar:
     o2_raw = st.text_input("Διπλό (2)", key="o2_val")
     
     try:
-        # Αντικατάσταση κόμματος και μετατροπή. 
-        # Χρησιμοποιούμε max(1.0, ...) για να αποφύγουμε διαίρεση με το μηδέν
         ace_odds = max(1.0, float(o1_raw.replace(',', '.')))
         draw_odds = max(1.0, float(ox_raw.replace(',', '.')))
         double_odds = max(1.0, float(o2_raw.replace(',', '.')))
@@ -78,21 +76,23 @@ with st.sidebar:
         ace_odds = draw_odds = double_odds = 1.00
 
 # ==============================
-# LOGIC ENGINE
+# LOGIC ENGINE (v12.12.9)
 # ==============================
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
 total_all = h_total + a_total
 is_blind = (total_all == 0)
 
-# Υπολογισμός πιθανοτήτων αγοράς
+# Market Probabilities
 inv_odds = (1/ace_odds + 1/draw_odds + 1/double_odds)
 prob_1, prob_X, prob_2 = (1/ace_odds)/inv_odds, (1/draw_odds)/inv_odds, (1/double_odds)/inv_odds
 
+warning_msg = ""
 if is_blind:
     real_1, real_X, real_2 = prob_1, prob_X, prob_2
     h_pos, a_pos = 0.5, 0.5
     mode_label = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ"
+    proposal = "1X" if prob_1 >= prob_2 else "X2"
 else:
     real_1 = st.session_state.hw/h_total if h_total > 0 else 0
     real_X = (st.session_state.hd + st.session_state.ad)/total_all if total_all > 0 else 0
@@ -101,15 +101,28 @@ else:
     a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-# Priority Logic
-if not is_blind:
-    if real_X > 0.40: proposal = "X (1X)" if real_1 > real_2 else "X (X2)"
-    elif real_X < 0.15: proposal = "1-2"
-    elif h_pos >= 2 * a_pos: proposal = "1X"
-    elif a_pos >= 2 * h_pos: proposal = "X2"
-    else: proposal = "1X" if real_1 >= real_2 else "X2"
-else:
-    proposal = "1X" if prob_1 >= prob_2 else "X2"
+    # --- CORE LOGIC HIERARCHY v12.12.9 ---
+    if real_X >= 0.40:
+        # Draw Flag Rule with Correct Coverage Logic
+        if a_pos >= 2 * h_pos and a_pos > 0:
+            proposal = "X (X2)"
+        else:
+            proposal = "X (1X)" # Default to Home Priority
+    elif real_X < 0.15:
+        proposal = "1-2"
+    elif real_1 > 0.45 and real_2 > 0.45:
+        proposal = "1-2"
+    elif a_pos >= 2 * h_pos and a_pos > 0:
+        proposal = "X2"
+    elif h_pos >= 2 * a_pos and h_pos > 0:
+        proposal = "1X"
+    else:
+        # Priority to Home if stats are balanced
+        proposal = "1X" if real_1 >= real_2 else "X2"
+
+    # Safety Net Rule
+    if (real_1 + real_2) < 0.40:
+        warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
 
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 
@@ -128,6 +141,7 @@ st.markdown(f"""
             </div>
             <div style="font-size: 1.2rem; font-weight: 800; color: {color};">{confidence}%</div>
         </div>
+        {f'<div class="warning-box">{warning_msg}</div>' if warning_msg else ''}
     </div>
 </div>
 """, unsafe_allow_html=True)
