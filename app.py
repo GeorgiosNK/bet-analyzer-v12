@@ -29,11 +29,6 @@ st.markdown("""
         border-radius: 8px; border: 1px solid #ffeeba; margin-top: 10px; 
         font-weight: bold; text-align: center; font-size: 0.9rem;
     }
-    .draw-flag {
-        background-color: #f1c40f; color: #000; padding: 8px;
-        border-radius: 5px; margin-top: 10px; font-weight: 900; text-align: center;
-        border: 2px dashed #000;
-    }
     .pos-badge {
         background: #1e3c72; color: white; padding: 2px 8px; 
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
@@ -41,7 +36,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# APP INFO TEXT - ΔΙΑΤΗΡΗΣΗ ΑΡΧΙΚΟΥ ΛΕΚΤΙΚΟΥ
+# APP INFO TEXT - ΣΤΑΘΕΡΟ ΛΕΚΤΙΚΟ
 st.markdown("""
 <div class="info-text">
     <strong>⚽ Bet Analyzer Pro v12.12.10</strong><br>
@@ -100,7 +95,6 @@ h_pos = (st.session_state.hw + st.session_state.hd)/h_total if h_total > 0 else 
 a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
 
 warning_msg = ""
-draw_flag_html = ""
 proposal = ""
 
 if is_blind:
@@ -109,6 +103,7 @@ if is_blind:
     proposal = "1X" if prob_1 >= prob_2 else "X2"
 else:
     real_1 = st.session_state.hw/h_total if h_total > 0 else 0
+    # Σωστός υπολογισμός Real X βάσει συνολικών ισοπαλιών
     real_X = (st.session_state.hd + st.session_state.ad)/total_all if total_all > 0 else 0
     real_2 = st.session_state.aw/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
@@ -131,9 +126,6 @@ else:
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
         mode_label += " (Low Confidence)"
-
-    if real_X >= 0.15:
-        draw_flag_html = f'<div class="draw-flag">>>> ΠΟΛΥ ΥΨΗΛΗ ΠΙΘΑΝΟΤΗΤΑ ΙΣΟΠΑΛΙΑΣ (X) <<<</div>'
     
     if ace_odds <= 1.50 and real_X > 0.25:
         warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
@@ -159,8 +151,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-if draw_flag_html:
-    st.markdown(draw_flag_html, unsafe_allow_html=True)
 if warning_msg:
     st.markdown(f'<div class="warning-box">{warning_msg}</div>', unsafe_allow_html=True)
 
@@ -181,25 +171,37 @@ with c2:
     st.number_input("Ήττες (A)", 0, 100, key="al")
 
 # ==============================
-# CHART WITH LABELS
+# CHART (ΔΙΟΡΘΩΜΕΝΟ ΜΕ ΣΤΗΛΗ Χ)
 # ==============================
 with st.expander("📊 Ανάλυση & Γράφημα", expanded=True):
     fig = go.Figure()
     x_labels = ["1", "X", "2"]
     
+    # Market Bar
     fig.add_trace(go.Bar(
-        name='Market', x=x_labels, y=[prob_1*100, prob_X*100, prob_2*100], 
-        marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"],
+        name='Market', 
+        x=x_labels, 
+        y=[prob_1*100, prob_X*100, prob_2*100], 
+        marker_color='#FF4B4B', 
+        text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"],
         textposition='auto'
     ))
+    
+    # Real Stats Bar - Εξασφάλιση εμφάνισης Real_X
     fig.add_trace(go.Bar(
-        name='Stats', x=x_labels, y=[real_1*100, real_X*100, real_2*100], 
-        marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"],
+        name='Stats', 
+        x=x_labels, 
+        y=[real_1*100, real_X*100, real_2*100], 
+        marker_color='#0083B0', 
+        text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"],
         textposition='auto'
     ))
     
     fig.update_layout(
-        barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10),
+        barmode='group', 
+        height=350, 
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(type='category'), # Επιβάλλει την εμφάνιση και των 3 κατηγοριών
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     st.plotly_chart(fig, use_container_width=True)
