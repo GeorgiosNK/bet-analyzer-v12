@@ -140,23 +140,24 @@ else:
     color = "#e74c3c"
 
 # ==============================
-# STICKY HEADER & RESULTS (BAR UPDATED)
+# STICKY HEADER & RESULTS (ALIGNMENT FIX v12.12.11)
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
-    <div class="result-card">
+    <div class="result-card" style="display: flex; flex-direction: column; align-items: center;">
         <div style="font-size: 0.75rem; color: #666; font-weight:bold;">{mode_label}</div>
-        <div style="font-size: 2.5rem; font-weight: 900; color: #1e3c72; margin: 5px 0;">{proposal}</div>
-        <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
-            <div class="conf-bar" style="flex-grow: 1; max-width: 400px; height: 26px;">
-                <div class="conf-fill" style="width: {confidence}%; background: {color};"></div>
+        <div style="font-size: 2.8rem; font-weight: 900; color: #1e3c72; margin: 0px 0px 10px 0px; line-height: 1;">{proposal}</div>
+        
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; max-width: 500px;">
+            <div class="conf-bar" style="flex-grow: 1; height: 28px; background: #f0f2f6; position: relative; border-radius: 14px; border: 1px solid #ddd; overflow: hidden;">
+                <div class="conf-fill" style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s ease-in-out;"></div>
                 <div style="position: absolute; width: 100%; top: 0; left: 0; height: 100%; display: flex; align-items: center; justify-content: center;">
-                    <span style="color: white; font-weight: 800; font-size: 0.85rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 1px;">
+                    <span style="color: white; font-weight: 800; font-size: 0.85rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 1px; white-space: nowrap;">
                         CONFIDENCE BAR
                     </span>
                 </div>
             </div>
-            <div style="font-size: 1.4rem; font-weight: 800; color: {color}; min-width: 65px;">{confidence}%</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: {color}; min-width: 65px; text-align: left;">{confidence}%</div>
         </div>
     </div>
 </div>
