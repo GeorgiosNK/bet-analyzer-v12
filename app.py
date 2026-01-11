@@ -27,6 +27,7 @@ st.markdown("""
     .warning-box {
         background-color: #fff3cd; color: #856404; padding: 10px; 
         border-radius: 5px; border: 1px solid #ffeeba; margin-top: 10px; font-weight: bold;
+        text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -59,7 +60,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.12.9 • Full Logic Fix")
+    st.caption("Version 12.12.9 • Final UI Fix")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
@@ -101,9 +102,8 @@ else:
     a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-    # --- CORE LOGIC HIERARCHY (Fixed) ---
+    # --- CORE LOGIC HIERARCHY ---
     if real_X >= 0.40:
-        # Draw Flag Rule with Home Priority Correction
         if a_pos >= 2 * h_pos and a_pos > 0:
             proposal = "X (X2)"
         else:
@@ -126,11 +126,11 @@ else:
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 
 # ==============================
-# STICKY HEADER (UI FIX)
+# STICKY HEADER
 # ==============================
 color = "#f1c40f" if confidence < 75 else "#2ecc71"
-warning_html = f'<div class="warning-box">{warning_msg}</div>' if warning_msg else ''
 
+# Κύρια Κάρτα Αποτελέσματος
 st.markdown(f"""
 <div class="sticky-result">
     <div class="result-card">
@@ -142,10 +142,13 @@ st.markdown(f"""
             </div>
             <div style="font-size: 1.2rem; font-weight: 800; color: {color};">{confidence}%</div>
         </div>
-        {warning_html}
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# Εμφάνιση Warning μόνο αν υπάρχει (εκτός του κύριου Sticky για αποφυγή bugs)
+if warning_msg:
+    st.markdown(f'<div class="warning-box">{warning_msg}</div>', unsafe_allow_html=True)
 
 # ==============================
 # MAIN INPUTS
