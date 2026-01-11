@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.12.10 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.12.11 PRO", page_icon="⚽", layout="centered")
 
 st.markdown("""
 <style>
@@ -18,7 +18,7 @@ st.markdown("""
         border: 2px solid #1e3c72; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         text-align: center;
     }
-    .conf-bar { height: 12px; border-radius: 6px; background: #f0f2f6; overflow: hidden; position: relative; }
+    .conf-bar { height: 24px; border-radius: 12px; background: #f0f2f6; overflow: hidden; position: relative; border: 1px solid #ddd; }
     .conf-fill { height: 100%; transition: width 0.8s ease-in-out; }
     .info-text {
         background-color: #e8f0fe; padding: 15px; border-radius: 10px;
@@ -33,7 +33,6 @@ st.markdown("""
         background: #1e3c72; color: white; padding: 2px 8px; 
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
     }
-    /* Guide Styles */
     .guide-item { padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem; }
 </style>
 """, unsafe_allow_html=True)
@@ -66,7 +65,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.12.10 PRO")
+    st.caption("Version 12.12.11 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
@@ -132,16 +131,16 @@ else:
 
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 
-# DYNAMIC COLOR LOGIC BASED ON YOUR OBSERVATIONS
+# ΧΡΩΜΑΤΙΚΗ ΛΟΓΙΚΗ
 if confidence >= 80:
-    color = "#2ecc71" # Πράσινο
+    color = "#2ecc71"
 elif confidence >= 60:
-    color = "#f1c40f" # Κίτρινο/Πορτοκαλί
+    color = "#f1c40f"
 else:
-    color = "#e74c3c" # Κόκκινο
+    color = "#e74c3c"
 
 # ==============================
-# STICKY HEADER & RESULTS
+# STICKY HEADER & RESULTS (BAR UPDATED)
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
@@ -149,10 +148,15 @@ st.markdown(f"""
         <div style="font-size: 0.75rem; color: #666; font-weight:bold;">{mode_label}</div>
         <div style="font-size: 2.5rem; font-weight: 900; color: #1e3c72; margin: 5px 0;">{proposal}</div>
         <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
-            <div class="conf-bar" style="flex-grow: 1; max-width: 300px;">
+            <div class="conf-bar" style="flex-grow: 1; max-width: 400px; height: 26px;">
                 <div class="conf-fill" style="width: {confidence}%; background: {color};"></div>
+                <div style="position: absolute; width: 100%; top: 0; left: 0; height: 100%; display: flex; align-items: center; justify-content: center;">
+                    <span style="color: white; font-weight: 800; font-size: 0.85rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 1px;">
+                        CONFIDENCE BAR
+                    </span>
+                </div>
             </div>
-            <div style="font-size: 1.2rem; font-weight: 800; color: {color};">{confidence}%</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: {color}; min-width: 65px;">{confidence}%</div>
         </div>
     </div>
 </div>
@@ -185,31 +189,17 @@ tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγ�
 with tab1:
     fig = go.Figure()
     x_labels = ["1", "X", "2"]
-    
     fig.add_trace(go.Bar(
-        name='Booker_Odds', 
-        x=x_labels, 
-        y=[prob_1*100, prob_X*100, prob_2*100], 
-        marker_color='#FF4B4B', 
-        text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"],
-        textposition='auto'
+        name='Booker_Odds', x=x_labels, y=[prob_1*100, prob_X*100, prob_2*100], 
+        marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], textposition='auto'
     ))
-    
     fig.add_trace(go.Bar(
-        name='Performance_Stats', 
-        x=x_labels, 
-        y=[real_1*100, real_X*100, real_2*100], 
-        marker_color='#0083B0', 
-        text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"],
-        textposition='auto'
+        name='Performance_Stats', x=x_labels, y=[real_1*100, real_X*100, real_2*100], 
+        marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], textposition='auto'
     ))
-    
     fig.update_layout(
-        barmode='group', 
-        height=350, 
-        margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(type='category'),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(type='category'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     st.plotly_chart(fig, use_container_width=True)
 
