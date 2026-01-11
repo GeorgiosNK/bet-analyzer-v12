@@ -36,7 +36,7 @@ st.markdown("""
 st.markdown("""
 <div class="info-text">
     <strong>⚽ Bet Analyzer Pro: Σύστημα Στατιστικής Ανάλυσης Αγώνων</strong><br>
-    Το Bet Analyzer συνδυάζει Market Odds και Real Stats. Η έκδοση v12.12.9 δίνει προτεραιότητα στα θετικά αποτελέσματα (Wins + Draws) και στην ισχύ της έδρας.
+    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
 
