@@ -165,7 +165,7 @@ with c1:
     st.number_input("Ισοπαλίες", 0, 100, key="hd")
     st.number_input("Ήττες", 0, 100, key="hl")
 with c2:
-    st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Pos</span>', unsafe_allow_html=True)
+    st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Positive</span>', unsafe_allow_html=True)
     st.number_input("Νίκες (A)", 0, 100, key="aw")
     st.number_input("Ισοπαλίες (A)", 0, 100, key="ad")
     st.number_input("Ήττες (A)", 0, 100, key="al")
