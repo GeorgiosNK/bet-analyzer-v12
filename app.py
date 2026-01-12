@@ -46,19 +46,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================
-# INITIALIZATION & RESET LOGIC
+# INITIALIZATION & RESET LOGIC (FIXED FOR v12.12.11)
 # ==============================
 if 'hw' not in st.session_state:
     st.session_state.update({'hw':0, 'hd':0, 'hl':0, 'aw':0, 'ad':0, 'al':0})
-if 'o1_val' not in st.session_state:
-    st.session_state.update({'o1_val': "1.00", 'ox_val': "1.00", 'o2_val': "1.00"})
+
+# Αρχικοποίηση για τις αποδόσεις (ως αριθμοί πλέον)
+if 'o1_num' not in st.session_state:
+    st.session_state.update({'o1_num': 1.00, 'ox_num': 1.00, 'o2_num': 1.00})
 
 def reset_everything():
+    # Καθαρισμός στατιστικών ομάδων
     for k in ['hw','hd','hl','aw','ad','al']: 
         st.session_state[k] = 0
-    st.session_state.o1_val = "1.00"
-    st.session_state.ox_val = "1.00"
-    st.session_state.o2_val = "1.00"
+    
+    # Καθαρισμός αποδόσεων (επαναφορά στο 1.00)
+    st.session_state.o1_num = 1.00
+    st.session_state.ox_num = 1.00
+    st.session_state.o2_num = 1.00
 
 # ==============================
 # SIDEBAR (MOBILE NUMPAD READY v12.12.11)
