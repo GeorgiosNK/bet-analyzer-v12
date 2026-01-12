@@ -61,25 +61,27 @@ def reset_everything():
     st.session_state.o2_val = "1.00"
 
 # ==============================
-# SIDEBAR
+# SIDEBAR (MOBILE NUMPAD READY v12.12.11)
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
     st.caption("Version 12.12.11 PRO")
     st.divider()
+    
+    # Το κουμπί reset καλεί τη συνάρτηση που μηδενίζει τα πάντα
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
     st.header("📊 Αποδόσεις (Odds)")
-    o1_raw = st.text_input("Άσος (1)", key="o1_val")
-    ox_raw = st.text_input("Ισοπαλία (X)", key="ox_val")
-    o2_raw = st.text_input("Διπλό (2)", key="o2_val")
     
-    try:
-        ace_odds = max(1.0, float(o1_raw.replace(',', '.')))
-        draw_odds = max(1.0, float(ox_raw.replace(',', '.')))
-        double_odds = max(1.0, float(o2_raw.replace(',', '.')))
-    except:
-        ace_odds = draw_odds = double_odds = 1.00
+    # Χρήση number_input για αυτόματη ενεργοποίηση αριθμητικού πληκτρολογίου στο κινητό
+    ace_odds = st.number_input("Άσος (1)", min_value=1.0, step=0.01, format="%.2f", key="o1_num")
+    draw_odds = st.number_input("Ισοπαλία (X)", min_value=1.0, step=0.01, format="%.2f", key="ox_num")
+    double_odds = st.number_input("Διπλό (2)", min_value=1.0, step=0.01, format="%.2f", key="o2_num")
+
+    # Εξασφάλιση ότι οι τιμές δεν είναι 0 για να αποφύγουμε σφάλματα διαίρεσης
+    ace_odds = max(1.0, ace_odds)
+    draw_odds = max(1.0, draw_odds)
+    double_odds = max(1.0, double_odds)
 
 # ==============================
 # LOGIC ENGINE
