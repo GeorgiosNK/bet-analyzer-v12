@@ -211,11 +211,11 @@ with tab2:
         Θεώρησέ το ως την "Κύρια Επιλογή" σου. Είναι τα ματς όπου η στατιστική "ασφάλεια" είναι στο μέγιστο επίπεδο.
     </div>
     <div class="guide-item" style="border-left: 5px solid #f1c40f; background: rgba(241, 196, 15, 0.1);">
-        <strong style="color: #d4ac0d;">Confidence 70-79% (Κίτρινο/Πορτοκαλί):</strong><br>
+        <strong style="color: #d4ac0d;">Confidence 61-79% (Κίτρινο/Πορτοκαλί):</strong><br>
         Είναι τα ματς για "κάλυψη" (π.χ. αν προτείνει 1, ίσως το 1Χ να είναι πιο σοφό) ή για μικρότερο ποντάρισμα.
     </div>
     <div class="guide-item" style="border-left: 5px solid #e74c3c; background: rgba(231, 76, 60, 0.1);">
-        <strong style="color: #e74c3c;">Confidence <60% (Κόκκινο):</strong><br>
+        <strong style="color: #e74c3c;">Confidence =<60% (Κόκκινο):</strong><br>
         Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
     </div>
     """, unsafe_allow_html=True)
