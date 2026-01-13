@@ -6,9 +6,9 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & PROFESSIONAL UI FIX
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.15.2 FINAL", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.15.3 FINAL", page_icon="⚽", layout="centered")
 
-# Auto-select JavaScript
+# Auto-select JavaScript for inputs
 components.html(
     """
     <script>
@@ -26,51 +26,46 @@ components.html(
 
 st.markdown("""
 <style>
-    /* Sticky Card Logic */
+    /* Sticky Card */
     [data-testid="stVerticalBlock"] > div:has(div.sticky-result) {
         position: sticky; top: 2.8rem; z-index: 1000;
         background: transparent; padding-bottom: 10px;
     }
     
-    /* CLEANER CARD - Adaptive to Theme */
+    /* Result Card */
     .result-card {
-        background-color: #1a1c23 !important;
+        background-color: #0e1117 !important;
         border: 2px solid #3498db !important;
         border-radius: 12px;
         padding: 25px;
         text-align: center;
         margin-bottom: 20px;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.4);
     }
     
     .mode-label { color: #3498db !important; font-size: 0.85rem; font-weight: bold; letter-spacing: 1px; }
-    .proposal-text { color: #ffffff !important; font-size: 3.5rem; font-weight: 900; line-height: 1; margin: 10px 0; }
+    .proposal-text { color: #ffffff !important; font-size: 3.5rem; font-weight: 900; line-height: 1.2; }
     
-    /* FIXED TEAM HEADERS */
+    /* Team Headers Alignment */
     .team-container {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 15px; padding-bottom: 5px; border-bottom: 2px solid #3498db;
+        margin-bottom: 10px; padding: 5px 0; border-bottom: 2px solid #3498db;
     }
     
-    .team-title { font-size: 1.1rem; font-weight: bold; }
-    
     .pos-badge {
-        background: #3498db; color: white; padding: 2px 10px; 
-        border-radius: 6px; font-size: 0.8rem; font-weight: bold;
+        background: #1e3c72; color: white; padding: 2px 10px; 
+        border-radius: 5px; font-size: 0.8rem; font-weight: bold;
     }
 
     .guide-box {
-        background: rgba(52, 152, 219, 0.05); border-radius: 8px; padding: 12px;
-        margin: 8px 0; border-left: 4px solid #3498db; font-size: 0.9rem;
+        background: rgba(52, 152, 219, 0.1); border-radius: 8px; padding: 12px;
+        margin: 10px 0; border-left: 5px solid #3498db; color: inherit;
     }
-    
-    /* Input Alignment Fix */
-    div[data-testid="stNumberInput"] label { font-weight: bold !important; color: inherit !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================
-# LOGIC ENGINE
+# DATA & LOGIC
 # ==============================
 if 'hw' not in st.session_state: st.session_state.update({'hw':0, 'hd':0, 'hl':0, 'aw':0, 'ad':0, 'al':0})
 if 'o1_s' not in st.session_state: st.session_state.update({'o1_s': "1.00", 'ox_s': "1.00", 'o2_s': "1.00"})
@@ -80,8 +75,8 @@ def reset():
     st.session_state.o1_s, st.session_state.ox_s, st.session_state.o2_s = "1.00", "1.00", "1.00"
 
 with st.sidebar:
-    st.title("⚽ Analyzer Pro")
-    st.button("🧹 Reset Data", on_click=reset, use_container_width=True)
+    st.title("⚽ Bet Analyzer")
+    st.button("🧹 Clear All Data", on_click=reset, use_container_width=True)
     o1_in = st.text_input("Άσος (1)", key="o1_s")
     ox_in = st.text_input("Ισοπαλία (X)", key="ox_s")
     o2_in = st.text_input("Διπλό (2)", key="o2_s")
@@ -112,7 +107,6 @@ else:
     r1, rX, r2 = (raw1/sum_r, rawX/sum_r, raw2/sum_r) if sum_r > 0 else (0,0,0)
     mode = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
     
-    # [cite: 2026-01-10, 2026-01-09]
     if rX >= 0.40: prop = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
     elif rX < 0.15: prop = f"{'1' if r1 >= r2 else '2'} (1-2)"
     elif r1 > 0.45 and r2 > 0.45: prop = "1 (1-2)"
@@ -120,14 +114,14 @@ else:
     elif h_pos >= 2 * a_pos and h_pos > 0: prop = "1 (1X)"
     else: prop = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
 
-    if (r1 + r2) < 0.40: warn = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended." [cite: 2026-01-08]
-    if o1 <= 1.50 and rX > 0.25: warn = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί." [cite: 2026-01-08]
+    if (r1 + r2) < 0.40: warn = "⚠️ HIGH RISK MATCH: Statistics are very low."
+    if o1 <= 1.50 and rX > 0.25: warn = "⚠️ TRAP στο Χ: Ένδειξη δυσκολίας του φαβορί."
 
 conf = max(5, min(100, int((1 - abs(r1 - p1) - abs(r2 - p2)) * 100)))
 c_clr = "#2ecc71" if conf >= 80 else "#f1c40f" if conf >= 60 else "#e74c3c"
 
 # ==============================
-# UI RENDERING
+# UI DISPLAY
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
@@ -141,47 +135,43 @@ st.markdown(f"""
 </div></div>
 """, unsafe_allow_html=True)
 
-if warn: st.error(warn)
+if warn: st.warning(warn)
 
 st.markdown("### 📝 Στατιστικά Ομάδων")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown(f'<div class="team-container"><span class="team-title">🏠 Γηπεδούχος</span><span class="pos-badge">{h_pos*100:.1f}% Pos</span></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="team-container"><b>🏠 Γηπεδούχος</b> <span class="pos-badge">{h_pos*100:.1f}% Pos</span></div>', unsafe_allow_html=True)
     st.number_input("Νίκες", 0, 100, key="hw")
     st.number_input("Ισοπαλίες", 0, 100, key="hd")
     st.number_input("Ήττες", 0, 100, key="hl")
 
 with col2:
-    st.markdown(f'<div class="team-container"><span class="team-title">🚀 Φιλοξενούμενος</span><span class="pos-badge">{a_pos*100:.1f}% Pos</span></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="team-container"><b>🚀 Φιλοξενούμενος</b> <span class="pos-badge">{a_pos*100:.1f}% Pos</span></div>', unsafe_allow_html=True)
     st.number_input("Νίκες ", 0, 100, key="aw")
     st.number_input("Ισοπαλίες ", 0, 100, key="ad")
     st.number_input("Ήττες ", 0, 100, key="al")
 
-t1, t2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
+tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
 
-with t1:
+with tab1:
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        name='Booker Odds (%)', x=["1", "X", "2"], y=[p1*100, pX*100, p2*100], 
-        marker_color='#e74c3c', text=[f"{p1*100:.1f}%" for _ in range(3)], textposition='inside',
-        insidetextfont=dict(color='white')
+        name='Booker (%)', x=["1", "X", "2"], y=[p1*100, pX*100, p2*100], 
+        marker_color='#e74c3c', text=[f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"], 
+        textposition='inside', insidetextfont=dict(color='white')
     ))
-    fig.data[0].text = [f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"]
-    
     fig.add_trace(go.Bar(
-        name='Real Performance (%)', x=["1", "X", "2"], y=[r1*100, rX*100, r2*100], 
-        marker_color='#3498db', text=[f"{r1*100:.1f}%", f"{rX*100:.1f}%", f"{r2*100:.1f}%"], textposition='inside',
-        insidetextfont=dict(color='white')
+        name='Real (%)', x=["1", "X", "2"], y=[r1*100, rX*100, r2*100], 
+        marker_color='#3498db', text=[f"{r1*100:.1f}%", f"{rX*100:.1f}%", f"{r2*100:.1f}%"], 
+        textposition='inside', insidetextfont=dict(color='white')
     ))
-    fig.update_layout(barmode='group', height=350, template="plotly_white", margin=dict(l=20, r=20, t=30, b=20), legend=dict(orientation="h", y=1.1))
+    fig.update_layout(barmode='group', height=350, template="plotly_white", margin=dict(l=20, r=20, t=30, b=20))
     st.plotly_chart(fig, use_container_width=True)
 
-with t2:
-    # [cite: 2026-01-03, 2026-01-09]
+with tab2:
     st.markdown("""
-    <div class="guide-box"><b>Confidence >80%:</b> Κύρια Επιλογή. Μέγιστη στατιστική ασφάλεια.</div>
-    <div class="guide-box"><b>Confidence 61-79%:</b> Επιλογή για κάλυψη (π.χ. Διπλή Ευκαιρία).</div>
-    <div class="guide-box"><b>Confidence <=60%:</b> Υψηλό ρίσκο.</div>
-    <div class="guide-box"><b>Positive Percentage (Wins + Draws):</b> Το συνολικό ποσοστό αποφυγής ήττας.</div>
+    <div class="guide-box"><b>Confidence >80%:</b> Κύρια Επιλογή. Υψηλή στατιστική ασφάλεια.</div>
+    <div class="guide-box"><b>Confidence 61-79%:</b> Επιλογή για κάλυψη (π.χ. 1Χ, Χ2).</div>
+    <div class="guide-box"><b>Positive Percentage (Pos):</b> Ποσοστό αγώνων χωρίς ήττα (Νίκες + Ισοπαλίες).</div>
     """, unsafe_allow_html=True)
