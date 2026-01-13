@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.3 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.4 PRO", page_icon="⚽", layout="centered")
 
 # JavaScript για Auto-select on focus
 components.html(
@@ -56,7 +56,7 @@ st.markdown("""
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.3</strong><br>
+    <strong>⚽ Bet Analyzer Pro v12.13.4</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
@@ -78,7 +78,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.13.3 PRO")
+    st.caption("Version 12.13.4 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
@@ -108,13 +108,12 @@ if is_blind:
     mode_label = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ"
     proposal = "1 (1X)" if prob_1 >= prob_2 else "2 (X2)"
 else:
-    # ΔΙΟΡΘΩΣΗ: Υπολογισμός Real Stats για σωστή απεικόνιση στο γράφημα
-    real_1 = st.session_state.hw/h_total if h_total > 0 else 0
-    real_2 = st.session_state.aw/a_total if a_total > 0 else 0
-    # Το Real X υπολογίζεται ως το υπόλοιπο ποσοστό για να βγαίνει 100% το γράφημα
-    real_X = (st.session_state.hd/h_total + st.session_state.ad/a_total) / 2 if (h_total > 0 and a_total > 0) else 0
+    # Σωστός υπολογισμός Real Stats για το γράφημα (βάσει συνολικών δειγμάτων)
+    real_1 = st.session_state.hw / total_all if total_all > 0 else 0
+    real_2 = st.session_state.aw / total_all if total_all > 0 else 0
+    real_X = (st.session_state.hd + st.session_state.ad) / total_all if total_all > 0 else 0
     
-    # Επανυπολογισμός για να είναι sum=1 στο γράφημα
+    # Normalization για 100% βάση
     r_sum = real_1 + real_X + real_2
     if r_sum > 0:
         real_1, real_X, real_2 = real_1/r_sum, real_X/r_sum, real_2/r_sum
@@ -184,9 +183,31 @@ with c2:
 tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
 with tab1:
     fig = go.Figure()
-    fig.add_trace(go.Bar(name='Booker_Odds', x=["1", "X", "2"], y=[prob_1*100, prob_X*100, prob_2*100], marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], textposition='auto'))
-    fig.add_trace(go.Bar(name='Performance_Stats', x=["1", "X", "2"], y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], textposition='auto'))
-    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10))
+    # Χρήση insidetextfont για άσπρα γράμματα στις μπάρες
+    fig.add_trace(go.Bar(
+        name='Booker_Odds', 
+        x=["1", "X", "2"], 
+        y=[prob_1*100, prob_X*100, prob_2*100], 
+        marker_color='#FF4B4B', 
+        text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], 
+        textposition='auto',
+        insidetextfont=dict(color='white')
+    ))
+    fig.add_trace(go.Bar(
+        name='Performance_Stats', 
+        x=["1", "X", "2"], 
+        y=[real_1*100, real_X*100, real_2*100], 
+        marker_color='#0083B0', 
+        text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], 
+        textposition='auto',
+        insidetextfont=dict(color='white')
+    ))
+    fig.update_layout(
+        barmode='group', 
+        height=350, 
+        margin=dict(l=10, r=10, t=10, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
