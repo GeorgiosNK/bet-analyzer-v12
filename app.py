@@ -4,18 +4,21 @@ import plotly.graph_objects as go
 import streamlit.components.v1 as components
 
 # ==============================
-# CONFIG & FORCE LIGHT MODE CSS
+# CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.1 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.0 PRO", page_icon="⚽", layout="centered")
 
-# JavaScript: Auto-select & Comma-to-Dot
+# SMART JAVASCRIPT FIX: Auto-select & Comma-to-Dot Conversion
 components.html(
     """
     <script>
         const setupInputs = () => {
             const inputs = window.parent.document.querySelectorAll('input');
             inputs.forEach(input => {
+                // Auto-select on focus
                 input.addEventListener('focus', function() { this.select(); });
+                
+                // Smart Comma to Dot conversion
                 input.addEventListener('input', function() {
                     if(this.value.includes(',')) {
                         this.value = this.value.replace(',', '.');
@@ -32,52 +35,30 @@ components.html(
 
 st.markdown("""
 <style>
-    /* FORCE LIGHT MODE COLORS */
-    .stApp {
-        background-color: #f0f2f6 !important;
-        color: #31333f !important;
-    }
-    
-    /* Force Sidebar Light Mode */
-    [data-testid="stSidebar"] {
-        background-color: #ffffff !important;
-    }
-    
-    /* Force Text and Labels to be Dark */
-    .stMarkdown, p, span, label, .stHeader {
-        color: #31333f !important;
-    }
-
     [data-testid="stVerticalBlock"] > div:has(div.sticky-result) {
         position: sticky; top: 2.8rem; z-index: 1000;
         background: rgba(240, 242, 246, 0.98); padding-bottom: 10px;
     }
-    
     .result-card {
-        background: #ffffff !important; padding: 1rem; border-radius: 15px;
+        background: #ffffff; padding: 1rem; border-radius: 15px;
         border: 2px solid #1e3c72; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         text-align: center;
     }
-    
     .conf-bar { height: 24px; border-radius: 12px; background: #f0f2f6; overflow: hidden; position: relative; border: 1px solid #ddd; }
-    
+    .conf-fill { height: 100%; transition: width 0.8s ease-in-out; }
     .info-text {
-        background-color: #e8f0fe !important; padding: 15px; border-radius: 10px;
+        background-color: #e8f0fe; padding: 15px; border-radius: 10px;
         border-left: 5px solid #1e3c72; margin-bottom: 20px; font-size: 0.95rem;
-        color: #31333f !important;
     }
-    
     .warning-box {
-        background-color: #fff3cd !important; color: #856404 !important; padding: 12px; 
+        background-color: #fff3cd; color: #856404; padding: 12px; 
         border-radius: 8px; border: 1px solid #ffeeba; margin-top: 10px; 
         font-weight: bold; text-align: center; font-size: 0.9rem;
     }
-    
     .pos-badge {
-        background: #1e3c72 !important; color: white !important; padding: 2px 8px; 
+        background: #1e3c72; color: white; padding: 2px 8px; 
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
     }
-    
     .guide-item { padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem; }
 </style>
 """, unsafe_allow_html=True)
@@ -85,7 +66,7 @@ st.markdown("""
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.1</strong><br>
+    <strong>⚽ Bet Analyzer Pro v12.13.0</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
@@ -111,7 +92,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.13.1 PRO")
+    st.caption("Version 12.13.0 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
@@ -244,8 +225,7 @@ with tab1:
     ))
     fig.update_layout(
         barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(type='category'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        template="plotly_white" # Διασφάλιση Light Theme στο γράφημα
+        xaxis=dict(type='category'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     st.plotly_chart(fig, use_container_width=True)
 
