@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & DYNAMIC THEME UI
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.14.2 MASTER", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.14.3 MASTER", page_icon="⚽", layout="centered")
 
 # Auto-select JavaScript
 components.html(
@@ -61,17 +61,15 @@ st.markdown("""
     }
     
     .info-text {
-        background: rgba(52, 152, 219, 0.1);
-        padding: 15px; border-radius: 10px;
-        border-left: 5px solid #3498db; 
-        margin-bottom: 20px; font-size: 0.95rem;
+        background-color: #e8f0fe; padding: 15px; border-radius: 10px;
+        border-left: 5px solid #1e3c72; margin-bottom: 20px; font-size: 0.95rem;
+        color: #1e3c72;
     }
     
     .warning-box {
-        background: rgba(231, 76, 60, 0.1); 
-        color: #e74c3c; padding: 12px; 
-        border-radius: 8px; border: 1px solid #e74c3c; 
-        margin-top: 10px; font-weight: bold; text-align: center;
+        background-color: #fff3cd; color: #856404; padding: 12px; 
+        border-radius: 8px; border: 1px solid #ffeeba; margin-top: 10px; 
+        font-weight: bold; text-align: center; font-size: 0.9rem;
     }
     
     .pos-badge {
@@ -81,11 +79,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# INFO BOX
+# INFO BOX (Πλήρες Λεκτικό)
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.14.2</strong><br>
-    Ο Bet Analyzer συνδυάζει Market Odds και Real Stats για να βγάλει το βέλτιστο σημείο.
+    <strong>⚽ Bet Analyzer Pro v12.14.3</strong><br>
+    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
 
@@ -104,7 +102,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.14.2 MASTER")
+    st.caption("Version 12.14.3 MASTER")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
@@ -121,7 +119,7 @@ draw_odds = max(1.0, safe_float(ox_txt))
 double_odds = max(1.0, safe_float(o2_txt))
 
 # ==============================
-# LOGIC ENGINE
+# LOGIC ENGINE (ΣΥΜΦΩΝΑ ΜΕ ΤΙΣ ΕΝΤΟΛΕΣ ΣΟΥ)
 # ==============================
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -143,20 +141,32 @@ else:
     rx = ((st.session_state.hd/h_total if h_total > 0 else 0) + (st.session_state.ad/a_total if a_total > 0 else 0)) / 2
     tr = r1 + rx + r2
     real_1, real_X, real_2 = (r1/tr, rx/tr, r2/tr) if tr > 0 else (0,0,0)
+    
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
     
-    # Custom Rules from Saved Info
-    if real_X >= 0.40: proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
-    elif real_X < 0.15: proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
-    elif real_1 > 0.45 and real_2 > 0.45: proposal = "1 (1-2)"
-    elif a_pos >= 2 * h_pos and a_pos > 0: proposal = "2 (X2)"
-    elif h_pos >= 2 * a_pos and h_pos > 0: proposal = "1 (1X)"
-    else: proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
+    # 1. Real Stat X > 40% (Mandatory 'X')
+    if real_X > 0.40:
+        proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
+    # 2. Real Stat X < 15% (Auto 1-2 & No Draw Flag)
+    elif real_X < 0.15:
+        proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
+    # 3. Both Ace/Double > 45%
+    elif real_1 > 0.45 and real_2 > 0.45:
+        proposal = "1 (1-2)"
+    # 4. Double Positive Percentage
+    elif a_pos >= 2 * h_pos and a_pos > 0:
+        proposal = "2 (X2)"
+    elif h_pos >= 2 * a_pos and h_pos > 0:
+        proposal = "1 (1X)"
+    else:
+        proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
 
+    # Warnings
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
         mode_label += " (Low Confidence)"
-    if ace_odds <= 1.50 and real_X > 0.25: warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
+    if ace_odds <= 1.50 and real_X > 0.25:
+        warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
 
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 color = "#2ecc71" if confidence >= 80 else "#f1c40f" if confidence >= 60 else "#e74c3c"
@@ -183,17 +193,17 @@ if warning_msg: st.markdown(f'<div class="warning-box">{warning_msg}</div>', uns
 st.markdown("### 📝 Στατιστικά Ομάδων")
 c1, c2 = st.columns(2)
 with c1:
-    st.markdown(f'**🏠 Γηπεδούχος** <span class="pos-badge">{h_pos*100:.1f}% Pos</span>', unsafe_allow_html=True)
+    st.markdown(f'**🏠 Γηπεδούχος** <span class="pos-badge">{h_pos*100:.1f}% Positive Percentage</span>', unsafe_allow_html=True)
     st.number_input("Εντός_Νίκες", 0, 100, key="hw")
     st.number_input("Εντός_Ισοπαλίες", 0, 100, key="hd")
     st.number_input("Εντός_Ήττες", 0, 100, key="hl")
 with c2:
-    st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Pos</span>', unsafe_allow_html=True)
+    st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Positive Percentage</span>', unsafe_allow_html=True)
     st.number_input("Εκτός_Νίκες (A)", 0, 100, key="aw")
     st.number_input("Εκτός_Ισοπαλίες (A)", 0, 100, key="ad")
     st.number_input("Εκτός_Ήττες (A)", 0, 100, key="al")
 
-tab1, tab2 = st.tabs(["📊 Ανάλυση", "🛡️ Οδηγός"])
+tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
 with tab1:
     fig = go.Figure()
     cats = ["1", "X", "2"]
