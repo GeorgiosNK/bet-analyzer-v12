@@ -6,9 +6,9 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.5 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.6 PRO", page_icon="⚽", layout="centered")
 
-# JavaScript για Auto-select on focus
+# JavaScript για Auto-select on focus (ΔΙΟΡΘΩΜΕΝΟ)
 components.html(
     """
     <script>
@@ -53,11 +53,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# APP INFO TEXT
+# APP INFO TEXT - ΕΠΑΝΑΦΟΡΑ ΛΕΚΤΙΚΟΥ
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.5</strong><br>
-    Ο Bet Analyzer συνδυάζει Market Odds & Real Stats με πλήρη στατιστική απεικόνιση και αυτόματη επιλογή πεδίων.
+    <strong>⚽ Bet Analyzer Pro v12.13.6</strong><br>
+    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
 
@@ -78,7 +78,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.13.5 PRO")
+    st.caption("Version 12.13.6 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
@@ -103,12 +103,10 @@ if (h_total + a_total) == 0:
     real_1, real_X, real_2 = prob_1, prob_X, prob_2
     mode_label, proposal = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ", ("1 (1X)" if prob_1 >= prob_2 else "2 (X2)")
 else:
-    # Υπολογισμός ποσοστών ανά κατηγορία
     r1 = st.session_state.hw/h_total if h_total > 0 else 0
     r2 = st.session_state.aw/a_total if a_total > 0 else 0
     rx = ((st.session_state.hd/h_total if h_total > 0 else 0) + (st.session_state.ad/a_total if a_total > 0 else 0)) / 2
     
-    # Normalization για το γράφημα
     total_r = r1 + rx + r2
     real_1, real_X, real_2 = (r1/total_r, rx/total_r, r2/total_r) if total_r > 0 else (0,0,0)
 
@@ -146,6 +144,8 @@ st.markdown(f"""
 </div></div></div></div></div>
 """, unsafe_allow_html=True)
 
+if warning_msg: st.markdown(f'<div class="warning-box">{warning_msg}</div>', unsafe_allow_html=True)
+
 # ==============================
 # MAIN INPUTS
 # ==============================
@@ -168,35 +168,28 @@ with c2:
 tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
 with tab1:
     fig = go.Figure()
-    categories = ["1", "X", "2"]
-    
-    fig.add_trace(go.Bar(
-        name='Booker_Odds', x=categories, y=[prob_1*100, prob_X*100, prob_2*100], 
-        marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], 
-        textposition='auto', insidetextfont=dict(color='white')
-    ))
-    fig.add_trace(go.Bar(
-        name='Performance_Stats', x=categories, y=[real_1*100, real_X*100, real_2*100], 
-        marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], 
-        textposition='auto', insidetextfont=dict(color='white')
-    ))
-    
-    fig.update_layout(
-        barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(type='category', categoryorder='array', categoryarray=categories),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
+    cats = ["1", "X", "2"]
+    fig.add_trace(go.Bar(name='Booker_Odds', x=cats, y=[prob_1*100, prob_X*100, prob_2*100], marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
+    fig.add_trace(go.Bar(name='Performance_Stats', x=cats, y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
+    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', categoryorder='array', categoryarray=cats), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
     st.markdown("""
     <div class="guide-item" style="border-left: 5px solid #2ecc71; background: rgba(46, 204, 113, 0.1);">
-        <strong style="color: #2ecc71;">Confidence >80% (Πράσινο):</strong> Κύρια Επιλογή.
+        <strong style="color: #2ecc71;">Confidence >80% (Πράσινο):</strong><br>
+        Θεώρησέ το ως την "Κύρια Επιλογή" σου. Είναι τα ματς όπου η στατιστική "ασφάλεια" είναι στο μέγιστο επίπεδο.
     </div>
     <div class="guide-item" style="border-left: 5px solid #f1c40f; background: rgba(241, 196, 15, 0.1);">
-        <strong style="color: #d4ac0d;">Confidence 61-79% (Κίτρινο):</strong> Χρειάζεται κάλυψη.
+        <strong style="color: #d4ac0d;">Confidence 61-79% (Κίτρινο/Πορτοκαλί):</strong><br>
+        Είναι τα ματς για "κάλυψη" (π.χ. αν προτείνει 1, ίσως το 1Χ να είναι πιο σοφό) ή για μικρότερο ποντάρισμα.
     </div>
     <div class="guide-item" style="border-left: 5px solid #e74c3c; background: rgba(231, 76, 60, 0.1);">
-        <strong style="color: #e74c3c;">Confidence <60% (Κόκκινο):</strong> Υψηλό ρίσκο.
+        <strong style="color: #e74c3c;">Confidence =<60% (Κόκκινο):</strong><br>
+        Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
+    </div>
+    <div class="guide-item" style="border-left: 5px solid #1e3c72; background: rgba(30, 60, 114, 0.1);">
+        <strong>Σύστημα Main (Coverage):</strong><br>
+        Το πρώτο σημείο είναι η κύρια επιλογή. Η παρένθεση δείχνει την προτεινόμενη Διπλή Ευκαιρία για κάλυψη.
     </div>
     """, unsafe_allow_html=True)
