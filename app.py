@@ -4,11 +4,11 @@ import plotly.graph_objects as go
 import streamlit.components.v1 as components
 
 # ==============================
-# CONFIG & ADAPTIVE CSS (DARK/LIGHT)
+# CONFIG & PROFESSIONAL UI
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.14.0 FINAL", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.14.1 FINAL", page_icon="⚽", layout="centered")
 
-# JavaScript για Auto-select
+# Auto-select JavaScript
 components.html(
     """
     <script>
@@ -26,63 +26,59 @@ components.html(
 
 st.markdown("""
 <style>
-    /* Sticky Header Logic */
+    /* Sticky Header */
     [data-testid="stVerticalBlock"] > div:has(div.sticky-result) {
         position: sticky; top: 2.8rem; z-index: 1000;
         background: transparent; padding-bottom: 10px;
     }
     
-    /* Adaptive Result Card (Works for Dark & Light) */
+    /* Neon Result Card - Fixed for Dark Mode */
     .result-card {
-        background: rgba(255, 255, 255, 0.05); 
-        backdrop-filter: blur(10px);
+        background: rgba(28, 40, 51, 0.95); 
         padding: 1.5rem; border-radius: 15px;
-        border: 1px solid rgba(30, 60, 114, 0.3); 
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        border: 2px solid #3498db; 
+        box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
         text-align: center;
         margin-bottom: 15px;
     }
     
-    /* Adaptive Info Box */
     .info-text {
-        background: rgba(30, 60, 114, 0.1);
-        color: inherit;
+        background: rgba(52, 152, 219, 0.1);
         padding: 15px; border-radius: 10px;
-        border-left: 5px solid #1e3c72; 
+        border-left: 5px solid #3498db; 
         margin-bottom: 20px; font-size: 0.95rem;
     }
     
     .warning-box {
-        background-color: rgba(255, 243, 205, 0.2); 
-        color: #d4ac0d; padding: 12px; 
-        border-radius: 8px; border: 1px solid rgba(255, 235, 186, 0.3); 
+        background: rgba(231, 76, 60, 0.1); 
+        color: #e74c3c; padding: 12px; 
+        border-radius: 8px; border: 1px solid #e74c3c; 
         margin-top: 10px; font-weight: bold; text-align: center;
     }
     
     .pos-badge {
-        background: #1e3c72; color: white; padding: 2px 8px; 
+        background: #3498db; color: white; padding: 2px 8px; 
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
     }
     
     .guide-item { 
         padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem;
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
-
-    /* Fix for dark mode text visibility */
-    h1, h2, h3, p, span { color: inherit; }
 </style>
 """, unsafe_allow_html=True)
 
+# APP INFO
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.14.0</strong><br>
+    <strong>⚽ Bet Analyzer Pro v12.14.1</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
 
 # ==============================
-# INITIALIZATION & RESET
+# STATE & RESET
 # ==============================
 if 'hw' not in st.session_state: st.session_state.update({'hw':0, 'hd':0, 'hl':0, 'aw':0, 'ad':0, 'al':0})
 if 'o1_str' not in st.session_state: st.session_state.update({'o1_str': "1.00", 'ox_str': "1.00", 'o2_str': "1.00"})
@@ -96,7 +92,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.14.0 FINAL")
+    st.caption("Version 12.14.1 FINAL")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
@@ -105,7 +101,7 @@ with st.sidebar:
     o2_txt = st.text_input("Διπλό (2)", key="o2_str")
 
 def safe_float(val):
-    try: return float(val.replace(',', '.'))
+    try: return float(str(val).replace(',', '.'))
     except: return 1.00
 
 ace_odds = max(1.0, safe_float(o1_txt))
@@ -153,19 +149,19 @@ confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2
 color = "#2ecc71" if confidence >= 80 else "#f1c40f" if confidence >= 60 else "#e74c3c"
 
 # ==============================
-# DISPLAY RESULTS
+# DISPLAY
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
 <div class="result-card">
-<div style="font-size: 0.8rem; opacity: 0.8; font-weight:bold; margin-bottom: 5px;">{mode_label}</div>
-<div style="font-size: 3.5rem; font-weight: 900; color: #3498db; line-height: 1; margin: 0;">{proposal}</div>
+<div style="font-size: 0.8rem; color: #3498db; font-weight:bold; margin-bottom: 5px;">{mode_label}</div>
+<div style="font-size: 3.5rem; font-weight: 900; color: white; line-height: 1; margin: 0;">{proposal}</div>
 <div style="font-size: 1.6rem; font-weight: 900; color: {color}; margin-bottom: 15px;">{confidence}%</div>
 <div style="max-width: 550px; margin: 0 auto;">
-<div style="width: 100%; height: 32px; background: rgba(0,0,0,0.1); position: relative; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
+<div style="width: 100%; height: 32px; background: rgba(0,0,0,0.3); position: relative; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
 <div style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s;"></div>
 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-<span style="color: white; font-weight: 900; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">CONFIDENCE BAR</span>
+<span style="color: white; font-weight: 900; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">CONFIDENCE BAR</span>
 </div></div></div></div></div>
 """, unsafe_allow_html=True)
 
@@ -184,16 +180,13 @@ with c2:
     st.number_input("Εκτός_Ισοπαλίες (A)", 0, 100, key="ad")
     st.number_input("Εκτός_Ήττες (A)", 0, 100, key="al")
 
-# ==============================
-# TABS & PLOT
-# ==============================
 tab1, tab2 = st.tabs(["📊 Ανάλυση", "🛡️ Οδηγός"])
 with tab1:
     fig = go.Figure()
     cats = ["1", "X", "2"]
     fig.add_trace(go.Bar(name='Booker_Odds', x=cats, y=[prob_1*100, prob_X*100, prob_2*100], marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
     fig.add_trace(go.Bar(name='Performance_Stats', x=cats, y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
-    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='inherit'), xaxis=dict(type='category', categoryorder='array', categoryarray=cats), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', categoryorder='array', categoryarray=cats), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
