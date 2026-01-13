@@ -1,23 +1,31 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit.components.v11 as components
+import streamlit.components.v1 as components  # Διορθώθηκε από v11 σε v1
 
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.1 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.2 PRO", page_icon="⚽", layout="centered")
 
-# JavaScript για αυτόματη επιλογή κειμένου κατά το κλικ (Auto-select on focus)
+# Βελτιωμένη JavaScript για αυτόματη επιλογή (Auto-select)
 components.html(
     """
     <script>
-        const inputs = window.parent.document.querySelectorAll('input[type="number"]');
-        inputs.forEach(input => {
-            input.addEventListener('focus', function() {
-                this.select();
+        const setupAutoSelect = () => {
+            const inputs = window.parent.document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.select();
+                });
+                // Για κινητά: επιλογή και με το κλικ
+                input.addEventListener('click', function() {
+                    this.select();
+                });
             });
-        });
+        }
+        // Εκτέλεση μετά τη φόρτωση
+        setTimeout(setupAutoSelect, 1000);
     </script>
     """,
     height=0,
@@ -53,8 +61,8 @@ st.markdown("""
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.1</strong><br>
-    Ο Bet Analyzer συνδυάζει Market Odds & Real Stats με σύστημα αυτόματης επιλογής πεδίων για μέγιστη ταχύτητα.
+    <strong>⚽ Bet Analyzer Pro v12.13.2</strong><br>
+    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
 
@@ -75,18 +83,22 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.13.1 PRO")
+    st.caption("Version 12.13.2 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
+    
     st.header("📊 Αποδόσεις (Odds)")
     ace_odds = st.number_input("Άσος (1)", min_value=1.0, step=0.01, format="%.2f", key="o1_num")
     draw_odds = st.number_input("Ισοπαλία (X)", min_value=1.0, step=0.01, format="%.2f", key="ox_num")
     double_odds = st.number_input("Διπλό (2)", min_value=1.0, step=0.01, format="%.2f", key="o2_num")
 
+    ace_odds = max(1.0, ace_odds)
+    draw_odds = max(1.0, draw_odds)
+    double_odds = max(1.0, double_odds)
+
 # ==============================
 # LOGIC ENGINE
 # ==============================
-ace_odds, draw_odds, double_odds = max(1.0, ace_odds), max(1.0, draw_odds), max(1.0, double_odds)
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
 total_all = h_total + a_total
@@ -105,20 +117,30 @@ if is_blind:
     mode_label = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ"
     proposal = "1 (1X)" if prob_1 >= prob_2 else "2 (X2)"
 else:
-    real_1, real_X, real_2 = st.session_state.hw/h_total if h_total > 0 else 0, (st.session_state.hd + st.session_state.ad)/total_all if total_all > 0 else 0, st.session_state.aw/a_total if a_total > 0 else 0
+    real_1 = st.session_state.hw/h_total if h_total > 0 else 0
+    real_X = (st.session_state.hd + st.session_state.ad)/total_all if total_all > 0 else 0
+    real_2 = st.session_state.aw/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-    if real_X >= 0.40: proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
-    elif real_X < 0.15: proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
-    elif real_1 > 0.45 and real_2 > 0.45: proposal = "1 (1-2)"
-    elif a_pos >= 2 * h_pos and a_pos > 0: proposal = "2 (X2)"
-    elif h_pos >= 2 * a_pos and h_pos > 0: proposal = "1 (1X)"
-    else: proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
+    if real_X >= 0.40:
+        proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
+    elif real_X < 0.15:
+        proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
+    elif real_1 > 0.45 and real_2 > 0.45:
+        proposal = "1 (1-2)"
+    elif a_pos >= 2 * h_pos and a_pos > 0:
+        proposal = "2 (X2)"
+    elif h_pos >= 2 * a_pos and h_pos > 0:
+        proposal = "1 (1X)"
+    else:
+        proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
 
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
         mode_label += " (Low Confidence)"
-    if ace_odds <= 1.50 and real_X > 0.25: warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
+    
+    if ace_odds <= 1.50 and real_X > 0.25:
+        warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
 
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 color = "#2ecc71" if confidence >= 80 else "#f1c40f" if confidence >= 60 else "#e74c3c"
