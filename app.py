@@ -8,14 +8,20 @@ import streamlit.components.v1 as components
 # ==============================
 st.set_page_config(page_title="Bet Analyzer v12.13.3.8 PRO", page_icon="⚽", layout="centered")
 
-# SMART JAVASCRIPT FIX: Auto-select & Comma-to-Dot Conversion
+# SMART JAVASCRIPT FIX: Auto-select, Comma-to-Dot & NUMPAD ACTIVATION
 components.html(
     """
     <script>
         const setupInputs = () => {
             const inputs = window.parent.document.querySelectorAll('input');
             inputs.forEach(input => {
+                // Auto-select on focus
                 input.addEventListener('focus', function() { this.select(); });
+                
+                // Trigger Numpad on Mobile
+                input.setAttribute('inputmode', 'decimal');
+
+                // Smart Comma to Dot conversion
                 input.addEventListener('input', function() {
                     if(this.value.includes(',')) {
                         this.value = this.value.replace(',', '.');
