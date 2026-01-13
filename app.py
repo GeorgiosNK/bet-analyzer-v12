@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & DYNAMIC THEME UI
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.14.5 MASTER", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.14.6 MASTER", page_icon="⚽", layout="centered")
 
 # Auto-select JavaScript
 components.html(
@@ -32,23 +32,28 @@ st.markdown("""
         background: transparent; padding-bottom: 10px;
     }
     
-    /* Dynamic Result Card based on Theme */
-    @media (prefers-color-scheme: light) {
-        .result-card {
-            background: #ffffff; border: 2px solid #1e3c72;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); color: #1e3c72;
-        }
-        .result-card .mode-label { color: #666; }
-        .result-card .proposal-text { color: #1e3c72; }
-    }
-    
+    /* FIX: Force Dark Background on Card in Dark Mode */
     @media (prefers-color-scheme: dark) {
         .result-card {
-            background: #0e1117; border: 2px solid #3498db;
-            box-shadow: 0 0 20px rgba(52, 152, 219, 0.3); color: white;
+            background-color: #1a1c23 !important; /* Σκούρο φόντο */
+            border: 2px solid #3498db !important;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.4) !important;
+            color: #ffffff !important;
         }
-        .result-card .mode-label { color: #3498db; }
-        .result-card .proposal-text { color: white; }
+        .result-card .mode-label { color: #3498db !important; }
+        .result-card .proposal-text { color: #ffffff !important; }
+    }
+    
+    /* Light Mode Style */
+    @media (prefers-color-scheme: light) {
+        .result-card {
+            background-color: #ffffff !important;
+            border: 2px solid #1e3c72 !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+            color: #1e3c72 !important;
+        }
+        .result-card .mode-label { color: #666 !important; }
+        .result-card .proposal-text { color: #1e3c72 !important; }
     }
 
     .result-card { padding: 1.5rem; border-radius: 15px; text-align: center; margin-bottom: 15px; }
@@ -68,18 +73,13 @@ st.markdown("""
         background: #1e3c72; color: white; padding: 3px 10px; 
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px; font-weight: bold;
     }
-
-    .guide-item { 
-        padding: 15px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem;
-        background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(128, 128, 128, 0.2);
-    }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.14.5</strong><br>
-    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
+    <strong>⚽ Bet Analyzer Pro v12.14.6</strong><br>
+    Συνδυασμός Market Odds και Real Stats για βέλτιστη ανάλυση ποδοσφαιρικών αναμετρήσεων.
 </div>
 """, unsafe_allow_html=True)
 
@@ -98,7 +98,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.14.5 MASTER")
+    st.caption("Version 12.14.6 MASTER")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
@@ -115,7 +115,7 @@ draw_odds = max(1.0, safe_float(ox_txt))
 double_odds = max(1.0, safe_float(o2_txt))
 
 # ==============================
-# LOGIC ENGINE (ALL COMMANDS ACTIVE)
+# LOGIC ENGINE
 # ==============================
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -176,7 +176,7 @@ st.markdown(f"""
 <div class="proposal-text" style="font-size: 3.8rem; font-weight: 900; line-height: 1; margin: 0;">{proposal}</div>
 <div style="font-size: 1.8rem; font-weight: 900; color: {color}; margin-bottom: 15px;">{confidence}%</div>
 <div style="max-width: 550px; margin: 0 auto;">
-<div style="width: 100%; height: 32px; background: rgba(0,0,0,0.2); position: relative; border-radius: 16px; border: 1px solid rgba(128,128,128,0.3); overflow: hidden;">
+<div style="width: 100%; height: 32px; background: rgba(128,128,128,0.2); position: relative; border-radius: 16px; border: 1px solid rgba(128,128,128,0.3); overflow: hidden;">
 <div style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s;"></div>
 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
 <span style="color: white; font-weight: 900; font-size: 0.95rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">CONFIDENCE BAR</span>
@@ -202,27 +202,16 @@ tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγ�
 with tab1:
     fig = go.Figure()
     cats = ["1", "X", "2"]
-    fig.add_trace(go.Bar(name='Booker_Odds', x=cats, y=[prob_1*100, prob_X*100, prob_2*100], marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
-    fig.add_trace(go.Bar(name='Performance_Stats', x=cats, y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
-    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=30, b=10), xaxis=dict(type='category', categoryorder='array', categoryarray=cats), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+    fig.add_trace(go.Bar(name='Booker_Odds', x=cats, y=[prob_1*100, prob_X*100, prob_2*100], marker_color='#FF4B4B'))
+    fig.add_trace(go.Bar(name='Performance_Stats', x=cats, y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0'))
+    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=30, b=10), xaxis=dict(type='category'))
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
     st.markdown("""
-    <div class="guide-item" style="border-left: 5px solid #2ecc71;">
-        <strong style="color: #2ecc71;">Confidence >80% (Πράσινο):</strong><br>
-        Θεώρησέ το ως την "Κύρια Επιλογή" σου. Είναι τα ματς όπου η στατιστική "ασφάλεια" είναι στο μέγιστο επίπεδο.
-    </div>
-    <div class="guide-item" style="border-left: 5px solid #f1c40f;">
-        <strong style="color: #d4ac0d;">Confidence 61-79% (Κίτρινο/Πορτοκαλί):</strong><br>
-        Είναι τα ματς για "κάλυψη" (π.χ. αν προτείνει 1, ίσως το 1Χ να είναι πιο σοφό) ή για μικρότερο ποντάρισμα.
-    </div>
-    <div class="guide-item" style="border-left: 5px solid #e74c3c;">
-        <strong style="color: #e74c3c;">Confidence =<60% (Κόκκινο):</strong><br>
-        Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
-    </div>
-    <div class="guide-item" style="border-left: 5px solid #3498db;">
-        <strong style="color: #3498db;">Σύστημα Main (Coverage):</strong><br>
-        Το πρώτο σημείο είναι η κύρια επιλογή. Η παρένθεση δείχνει την προτεινόμενη Διπλή Ευκαιρία για κάλυψη.
+    <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(128,128,128,0.2);">
+        <strong style="color: #2ecc71;">Confidence >80%:</strong> Κύρια Επιλογή.<br>
+        <strong style="color: #f1c40f;">Confidence 61-79%:</strong> Επιλογή για κάλυψη.<br>
+        <strong style="color: #e74c3c;">Confidence <=60%:</strong> Υψηλό ρίσκο.
     </div>
     """, unsafe_allow_html=True)
