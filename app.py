@@ -6,29 +6,19 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.8 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.9 PRO", page_icon="⚽", layout="centered")
 
-# JavaScript για Auto-select ΚΑΙ αυτόματη διόρθωση κόμματος σε τελεία
+# JavaScript για Auto-select
 components.html(
     """
     <script>
-        const fixInputs = () => {
-            const inputs = window.parent.document.querySelectorAll('input[type="number"]');
+        const setupAutoSelect = () => {
+            const inputs = window.parent.document.querySelectorAll('input');
             inputs.forEach(input => {
-                // Auto-select on focus
                 input.addEventListener('focus', function() { this.select(); });
-                
-                // Διόρθωση κόμματος σε τελεία για τα ελληνικά πληκτρολόγια
-                input.addEventListener('input', function(e) {
-                    if(this.value.includes(',')) {
-                        this.value = this.value.replace(',', '.');
-                    }
-                });
             });
         }
-        setTimeout(fixInputs, 1000);
-        // Επανάληψη σε περίπτωση που αλλάξουν τα tabs
-        setInterval(fixInputs, 3000);
+        setTimeout(setupAutoSelect, 1000);
     </script>
     """,
     height=0,
@@ -62,10 +52,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.8</strong><br>
+    <strong>⚽ Bet Analyzer Pro v12.13.9</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
@@ -74,27 +63,38 @@ st.markdown("""
 # INITIALIZATION & RESET LOGIC
 # ==============================
 if 'hw' not in st.session_state: st.session_state.update({'hw':0, 'hd':0, 'hl':0, 'aw':0, 'ad':0, 'al':0})
-if 'o1_num' not in st.session_state: st.session_state.update({'o1_num': 1.00, 'ox_num': 1.00, 'o2_num': 1.00})
+if 'o1_str' not in st.session_state: st.session_state.update({'o1_str': "1.00", 'ox_str': "1.00", 'o2_str': "1.00"})
 
 def reset_everything():
     for k in ['hw','hd','hl','aw','ad','al']: st.session_state[k] = 0
-    st.session_state.o1_num = 1.00
-    st.session_state.ox_num = 1.00
-    st.session_state.o2_num = 1.00
+    st.session_state.o1_str = "1.00"
+    st.session_state.ox_str = "1.00"
+    st.session_state.o2_str = "1.00"
 
 # ==============================
-# SIDEBAR
+# SIDEBAR - ODDS AS TEXT INPUT (FIX FOR DOT/COMMA)
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.13.8 PRO")
+    st.caption("Version 12.13.9 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
-    # Χρήση step=0.01 και format για εξαναγκασμό σωστής τελείας
-    ace_odds = st.number_input("Άσος (1)", min_value=1.0, step=0.01, format="%.2f", key="o1_num")
-    draw_odds = st.number_input("Ισοπαλία (X)", min_value=1.0, step=0.01, format="%.2f", key="ox_num")
-    double_odds = st.number_input("Διπλό (2)", min_value=1.0, step=0.01, format="%.2f", key="o2_num")
+    
+    o1_txt = st.text_input("Άσος (1)", key="o1_str")
+    ox_txt = st.text_input("Ισοπαλία (X)", key="ox_str")
+    o2_txt = st.text_input("Διπλό (2)", key="o2_str")
+
+# Μετατροπή κειμένου σε αριθμό με ασφάλεια
+def safe_float(val):
+    try:
+        return float(val.replace(',', '.'))
+    except:
+        return 1.00
+
+ace_odds = safe_float(o1_txt)
+draw_odds = safe_float(ox_txt)
+double_odds = safe_float(o2_txt)
 
 # ==============================
 # LOGIC ENGINE
@@ -119,7 +119,6 @@ else:
     r1 = st.session_state.hw/h_total if h_total > 0 else 0
     r2 = st.session_state.aw/a_total if a_total > 0 else 0
     rx = ((st.session_state.hd/h_total if h_total > 0 else 0) + (st.session_state.ad/a_total if a_total > 0 else 0)) / 2
-    
     total_r = r1 + rx + r2
     real_1, real_X, real_2 = (r1/total_r, rx/total_r, r2/total_r) if total_r > 0 else (0,0,0)
 
@@ -141,7 +140,7 @@ confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2
 color = "#2ecc71" if confidence >= 80 else "#f1c40f" if confidence >= 60 else "#e74c3c"
 
 # ==============================
-# STICKY HEADER & RESULTS
+# STICKY HEADER
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
