@@ -4,11 +4,11 @@ import plotly.graph_objects as go
 import streamlit.components.v1 as components
 
 # ==============================
-# CONFIG & PROFESSIONAL UI FIX
+# CONFIG & BASIC STYLING
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.15.3 FINAL", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.16.0", page_icon="⚽", layout="centered")
 
-# Auto-select JavaScript for inputs
+# Auto-select JavaScript
 components.html(
     """
     <script>
@@ -26,46 +26,24 @@ components.html(
 
 st.markdown("""
 <style>
-    /* Sticky Card */
-    [data-testid="stVerticalBlock"] > div:has(div.sticky-result) {
-        position: sticky; top: 2.8rem; z-index: 1000;
-        background: transparent; padding-bottom: 10px;
-    }
-    
-    /* Result Card */
     .result-card {
-        background-color: #0e1117 !important;
-        border: 2px solid #3498db !important;
-        border-radius: 12px;
-        padding: 25px;
+        background-color: #0e1117;
+        border: 2px solid #3498db;
+        border-radius: 10px;
+        padding: 20px;
         text-align: center;
         margin-bottom: 20px;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.4);
     }
-    
-    .mode-label { color: #3498db !important; font-size: 0.85rem; font-weight: bold; letter-spacing: 1px; }
-    .proposal-text { color: #ffffff !important; font-size: 3.5rem; font-weight: 900; line-height: 1.2; }
-    
-    /* Team Headers Alignment */
-    .team-container {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 10px; padding: 5px 0; border-bottom: 2px solid #3498db;
-    }
-    
+    .proposal-text { color: #ffffff; font-size: 3rem; font-weight: bold; }
     .pos-badge {
-        background: #1e3c72; color: white; padding: 2px 10px; 
-        border-radius: 5px; font-size: 0.8rem; font-weight: bold;
-    }
-
-    .guide-box {
-        background: rgba(52, 152, 219, 0.1); border-radius: 8px; padding: 12px;
-        margin: 10px 0; border-left: 5px solid #3498db; color: inherit;
+        background: #1e3c72; color: white; padding: 2px 8px; 
+        border-radius: 5px; font-size: 0.8rem; float: right;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================
-# DATA & LOGIC
+# DATA & SESSION STATE
 # ==============================
 if 'hw' not in st.session_state: st.session_state.update({'hw':0, 'hd':0, 'hl':0, 'aw':0, 'ad':0, 'al':0})
 if 'o1_s' not in st.session_state: st.session_state.update({'o1_s': "1.00", 'ox_s': "1.00", 'o2_s': "1.00"})
@@ -77,15 +55,15 @@ def reset():
 with st.sidebar:
     st.title("⚽ Bet Analyzer")
     st.button("🧹 Clear All Data", on_click=reset, use_container_width=True)
-    o1_in = st.text_input("Άσος (1)", key="o1_s")
-    ox_in = st.text_input("Ισοπαλία (X)", key="ox_s")
-    o2_in = st.text_input("Διπλό (2)", key="o2_s")
+    o1_v = st.text_input("Άσος (1)", key="o1_s")
+    ox_v = st.text_input("Ισοπαλία (X)", key="ox_s")
+    o2_v = st.text_input("Διπλό (2)", key="o2_s")
 
 def f(v):
     try: return float(str(v).replace(',', '.'))
     except: return 1.0
 
-o1, ox, o2 = max(1.0, f(o1_in)), max(1.0, f(ox_in)), max(1.0, f(o2_in))
+o1, ox, o2 = max(1.0, f(o1_v)), max(1.0, f(ox_v)), max(1.0, f(o2_v))
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
 
@@ -95,17 +73,16 @@ p1, pX, p2 = (1/o1)/inv, (1/ox)/inv, (1/o2)/inv
 h_pos = (st.session_state.hw + st.session_state.hd)/h_t if h_t > 0 else 0
 a_pos = (st.session_state.aw + st.session_state.ad)/a_t if a_t > 0 else 0
 
-warn, prop, mode = "", "", ""
-
+# Logic [cite: 2026-01-10, 2026-01-09, 2026-01-08]
+warn, prop = "", ""
 if (h_t + a_t) == 0:
     r1, rX, r2 = p1, pX, p2
-    mode, prop = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ", ("1 (1X)" if p1 >= p2 else "2 (X2)")
+    prop = "1 (1X)" if p1 >= p2 else "2 (X2)"
 else:
     raw1, raw2 = st.session_state.hw/h_t if h_t > 0 else 0, st.session_state.aw/a_t if a_t > 0 else 0
     rawX = ((st.session_state.hd/h_t if h_t > 0 else 0) + (st.session_state.ad/a_t if a_t > 0 else 0)) / 2
     sum_r = raw1 + rawX + raw2
     r1, rX, r2 = (raw1/sum_r, rawX/sum_r, raw2/sum_r) if sum_r > 0 else (0,0,0)
-    mode = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
     
     if rX >= 0.40: prop = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
     elif rX < 0.15: prop = f"{'1' if r1 >= r2 else '2'} (1-2)"
@@ -118,60 +95,48 @@ else:
     if o1 <= 1.50 and rX > 0.25: warn = "⚠️ TRAP στο Χ: Ένδειξη δυσκολίας του φαβορί."
 
 conf = max(5, min(100, int((1 - abs(r1 - p1) - abs(r2 - p2)) * 100)))
-c_clr = "#2ecc71" if conf >= 80 else "#f1c40f" if conf >= 60 else "#e74c3c"
 
 # ==============================
-# UI DISPLAY
+# DISPLAY
 # ==============================
 st.markdown(f"""
-<div class="sticky-result">
 <div class="result-card">
-    <div class="mode-label">{mode}</div>
+    <div style="color: #3498db; font-weight: bold;">ΠΡΟΤΑΣΗ</div>
     <div class="proposal-text">{prop}</div>
-    <div style="font-size: 1.8rem; font-weight: 900; color: {c_clr};">{conf}% Confidence</div>
-    <div style="width: 100%; height: 10px; background: #2d3436; border-radius: 5px; margin-top: 15px; overflow: hidden;">
-        <div style="width: {conf}%; background: {c_clr}; height: 100%;"></div>
-    </div>
-</div></div>
+    <div style="font-size: 1.5rem; color: #2ecc71;">{conf}% Confidence</div>
+</div>
 """, unsafe_allow_html=True)
 
 if warn: st.warning(warn)
 
-st.markdown("### 📝 Στατιστικά Ομάδων")
 col1, col2 = st.columns(2)
-
 with col1:
-    st.markdown(f'<div class="team-container"><b>🏠 Γηπεδούχος</b> <span class="pos-badge">{h_pos*100:.1f}% Pos</span></div>', unsafe_allow_html=True)
+    st.markdown(f"**🏠 Γηπεδούχος** <span class='pos-badge'>{h_pos*100:.1f}% Pos</span>", unsafe_allow_html=True)
     st.number_input("Νίκες", 0, 100, key="hw")
     st.number_input("Ισοπαλίες", 0, 100, key="hd")
     st.number_input("Ήττες", 0, 100, key="hl")
-
 with col2:
-    st.markdown(f'<div class="team-container"><b>🚀 Φιλοξενούμενος</b> <span class="pos-badge">{a_pos*100:.1f}% Pos</span></div>', unsafe_allow_html=True)
+    st.markdown(f"**🚀 Φιλοξενούμενος** <span class='pos-badge'>{a_pos*100:.1f}% Pos</span>", unsafe_allow_html=True)
     st.number_input("Νίκες ", 0, 100, key="aw")
     st.number_input("Ισοπαλίες ", 0, 100, key="ad")
     st.number_input("Ήττες ", 0, 100, key="al")
 
-tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
-
+tab1, tab2 = st.tabs(["📊 Γράφημα", "🛡️ Οδηγός"])
 with tab1:
     fig = go.Figure()
+    # ΕΔΩ ΕΙΝΑΙ ΤΑ ΝΟΥΜΕΡΑ ΜΕΣΑ ΣΤΙΣ ΜΠΑΡΕΣ
     fig.add_trace(go.Bar(
-        name='Booker (%)', x=["1", "X", "2"], y=[p1*100, pX*100, p2*100], 
-        marker_color='#e74c3c', text=[f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"], 
+        name='Booker %', x=["1", "X", "2"], y=[p1*100, pX*100, p2*100], 
+        marker_color='#ef4444', text=[f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"],
         textposition='inside', insidetextfont=dict(color='white')
     ))
     fig.add_trace(go.Bar(
-        name='Real (%)', x=["1", "X", "2"], y=[r1*100, rX*100, r2*100], 
-        marker_color='#3498db', text=[f"{r1*100:.1f}%", f"{rX*100:.1f}%", f"{r2*100:.1f}%"], 
+        name='Real %', x=["1", "X", "2"], y=[r1*100, rX*100, r2*100], 
+        marker_color='#3498db', text=[f"{r1*100:.1f}%", f"{rX*100:.1f}%", f"{r2*100:.1f}%"],
         textposition='inside', insidetextfont=dict(color='white')
     ))
-    fig.update_layout(barmode='group', height=350, template="plotly_white", margin=dict(l=20, r=20, t=30, b=20))
+    fig.update_layout(barmode='group', height=300, template="plotly_white", margin=dict(l=20, r=20, t=20, b=20))
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
-    st.markdown("""
-    <div class="guide-box"><b>Confidence >80%:</b> Κύρια Επιλογή. Υψηλή στατιστική ασφάλεια.</div>
-    <div class="guide-box"><b>Confidence 61-79%:</b> Επιλογή για κάλυψη (π.χ. 1Χ, Χ2).</div>
-    <div class="guide-box"><b>Positive Percentage (Pos):</b> Ποσοστό αγώνων χωρίς ήττα (Νίκες + Ισοπαλίες).</div>
-    """, unsafe_allow_html=True)
+    st.info("Οδηγός: Confidence >80% = Κύρια Επιλογή. Positive Percentage = Νίκες + Ισοπαλίες.")
