@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & DYNAMIC THEME UI
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.14.4 MASTER", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.14.5 MASTER", page_icon="⚽", layout="centered")
 
 # Auto-select JavaScript
 components.html(
@@ -26,11 +26,13 @@ components.html(
 
 st.markdown("""
 <style>
+    /* Sticky Header Logic */
     [data-testid="stVerticalBlock"] > div:has(div.sticky-result) {
         position: sticky; top: 2.8rem; z-index: 1000;
         background: transparent; padding-bottom: 10px;
     }
     
+    /* Dynamic Result Card based on Theme */
     @media (prefers-color-scheme: light) {
         .result-card {
             background: #ffffff; border: 2px solid #1e3c72;
@@ -42,8 +44,8 @@ st.markdown("""
     
     @media (prefers-color-scheme: dark) {
         .result-card {
-            background: #1c2833; border: 2px solid #3498db;
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); color: white;
+            background: #0e1117; border: 2px solid #3498db;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.3); color: white;
         }
         .result-card .mode-label { color: #3498db; }
         .result-card .proposal-text { color: white; }
@@ -52,23 +54,23 @@ st.markdown("""
     .result-card { padding: 1.5rem; border-radius: 15px; text-align: center; margin-bottom: 15px; }
     
     .info-text {
-        background-color: rgba(30, 60, 114, 0.1); padding: 15px; border-radius: 10px;
-        border-left: 5px solid #1e3c72; margin-bottom: 20px; font-size: 0.95rem;
+        background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 10px;
+        border-left: 5px solid #3498db; margin-bottom: 20px; font-size: 0.95rem;
     }
     
     .warning-box {
-        background-color: #fff3cd; color: #856404; padding: 12px; 
-        border-radius: 8px; border: 1px solid #ffeeba; margin-top: 10px; 
+        background-color: rgba(231, 76, 60, 0.1); color: #e74c3c; padding: 12px; 
+        border-radius: 8px; border: 1px solid #e74c3c; margin-top: 10px; 
         font-weight: bold; text-align: center; font-size: 0.9rem;
     }
     
     .pos-badge {
-        background: #1e3c72; color: white; padding: 2px 8px; 
-        border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
+        background: #1e3c72; color: white; padding: 3px 10px; 
+        border-radius: 5px; font-size: 0.85rem; margin-left: 10px; font-weight: bold;
     }
 
     .guide-item { 
-        padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem;
+        padding: 15px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem;
         background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(128, 128, 128, 0.2);
     }
 </style>
@@ -76,7 +78,7 @@ st.markdown("""
 
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.14.4</strong><br>
+    <strong>⚽ Bet Analyzer Pro v12.14.5</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
@@ -96,7 +98,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.14.4 MASTER")
+    st.caption("Version 12.14.5 MASTER")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
@@ -113,7 +115,7 @@ draw_odds = max(1.0, safe_float(ox_txt))
 double_odds = max(1.0, safe_float(o2_txt))
 
 # ==============================
-# LOGIC ENGINE
+# LOGIC ENGINE (ALL COMMANDS ACTIVE)
 # ==============================
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -137,17 +139,29 @@ else:
     real_1, real_X, real_2 = (r1/tr, rx/tr, r2/tr) if tr > 0 else (0,0,0)
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
     
-    if real_X > 0.40: proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
-    elif real_X < 0.15: proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
-    elif real_1 > 0.45 and real_2 > 0.45: proposal = "1 (1-2)"
-    elif a_pos >= 2 * h_pos and a_pos > 0: proposal = "2 (X2)"
-    elif h_pos >= 2 * a_pos and h_pos > 0: proposal = "1 (1X)"
-    else: proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
+    # 1. Real Stat X > 40%
+    if real_X > 0.40:
+        proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
+    # 2. Real Stat X < 15%
+    elif real_X < 0.15:
+        proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
+    # 3. Both Ace/Double > 45%
+    elif real_1 > 0.45 and real_2 > 0.45:
+        proposal = "1 (1-2)"
+    # 4. Double Positive Percentage
+    elif a_pos >= 2 * h_pos and a_pos > 0:
+        proposal = "2 (X2)"
+    elif h_pos >= 2 * a_pos and h_pos > 0:
+        proposal = "1 (1X)"
+    else:
+        proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
 
+    # Warnings
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
         mode_label += " (Low Confidence)"
-    if ace_odds <= 1.50 and real_X > 0.25: warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
+    if ace_odds <= 1.50 and real_X > 0.25:
+        warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
 
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 color = "#2ecc71" if confidence >= 80 else "#f1c40f" if confidence >= 60 else "#e74c3c"
@@ -158,14 +172,14 @@ color = "#2ecc71" if confidence >= 80 else "#f1c40f" if confidence >= 60 else "#
 st.markdown(f"""
 <div class="sticky-result">
 <div class="result-card">
-<div class="mode-label" style="font-size: 0.8rem; font-weight:bold; margin-bottom: 5px;">{mode_label}</div>
-<div class="proposal-text" style="font-size: 3.5rem; font-weight: 900; line-height: 1; margin: 0;">{proposal}</div>
-<div style="font-size: 1.6rem; font-weight: 900; color: {color}; margin-bottom: 15px;">{confidence}%</div>
+<div class="mode-label" style="font-size: 0.85rem; font-weight:bold; margin-bottom: 5px;">{mode_label}</div>
+<div class="proposal-text" style="font-size: 3.8rem; font-weight: 900; line-height: 1; margin: 0;">{proposal}</div>
+<div style="font-size: 1.8rem; font-weight: 900; color: {color}; margin-bottom: 15px;">{confidence}%</div>
 <div style="max-width: 550px; margin: 0 auto;">
-<div style="width: 100%; height: 32px; background: rgba(0,0,0,0.1); position: relative; border-radius: 16px; border: 1px solid rgba(128,128,128,0.2); overflow: hidden;">
+<div style="width: 100%; height: 32px; background: rgba(0,0,0,0.2); position: relative; border-radius: 16px; border: 1px solid rgba(128,128,128,0.3); overflow: hidden;">
 <div style="width: {confidence}%; background: {color}; height: 100%; transition: width 0.8s;"></div>
 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-<span style="color: white; font-weight: 900; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">CONFIDENCE BAR</span>
+<span style="color: white; font-weight: 900; font-size: 0.95rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">CONFIDENCE BAR</span>
 </div></div></div></div></div>
 """, unsafe_allow_html=True)
 
@@ -207,8 +221,8 @@ with tab2:
         <strong style="color: #e74c3c;">Confidence =<60% (Κόκκινο):</strong><br>
         Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
     </div>
-    <div class="guide-item" style="border-left: 5px solid #1e3c72;">
-        <strong>Σύστημα Main (Coverage):</strong><br>
+    <div class="guide-item" style="border-left: 5px solid #3498db;">
+        <strong style="color: #3498db;">Σύστημα Main (Coverage):</strong><br>
         Το πρώτο σημείο είναι η κύρια επιλογή. Η παρένθεση δείχνει την προτεινόμενη Διπλή Ευκαιρία για κάλυψη.
     </div>
     """, unsafe_allow_html=True)
