@@ -6,20 +6,29 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.7 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.8 PRO", page_icon="⚽", layout="centered")
 
-# JavaScript για Auto-select on focus
+# JavaScript για Auto-select ΚΑΙ αυτόματη διόρθωση κόμματος σε τελεία
 components.html(
     """
     <script>
-        const setupAutoSelect = () => {
+        const fixInputs = () => {
             const inputs = window.parent.document.querySelectorAll('input[type="number"]');
             inputs.forEach(input => {
+                // Auto-select on focus
                 input.addEventListener('focus', function() { this.select(); });
-                input.addEventListener('click', function() { this.select(); });
+                
+                // Διόρθωση κόμματος σε τελεία για τα ελληνικά πληκτρολόγια
+                input.addEventListener('input', function(e) {
+                    if(this.value.includes(',')) {
+                        this.value = this.value.replace(',', '.');
+                    }
+                });
             });
         }
-        setTimeout(setupAutoSelect, 1000);
+        setTimeout(fixInputs, 1000);
+        // Επανάληψη σε περίπτωση που αλλάξουν τα tabs
+        setInterval(fixInputs, 3000);
     </script>
     """,
     height=0,
@@ -56,7 +65,7 @@ st.markdown("""
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.7</strong><br>
+    <strong>⚽ Bet Analyzer Pro v12.13.8</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
@@ -78,10 +87,11 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.13.7 PRO")
+    st.caption("Version 12.13.8 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
+    # Χρήση step=0.01 και format για εξαναγκασμό σωστής τελείας
     ace_odds = st.number_input("Άσος (1)", min_value=1.0, step=0.01, format="%.2f", key="o1_num")
     draw_odds = st.number_input("Ισοπαλία (X)", min_value=1.0, step=0.01, format="%.2f", key="ox_num")
     double_odds = st.number_input("Διπλό (2)", min_value=1.0, step=0.01, format="%.2f", key="o2_num")
@@ -89,6 +99,7 @@ with st.sidebar:
 # ==============================
 # LOGIC ENGINE
 # ==============================
+warning_msg, proposal, mode_label = "", "", ""
 ace_odds, draw_odds, double_odds = max(1.0, ace_odds), max(1.0, draw_odds), max(1.0, double_odds)
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -100,28 +111,19 @@ prob_1, prob_X, prob_2 = (1/ace_odds)/inv_odds, (1/draw_odds)/inv_odds, (1/doubl
 h_pos = (st.session_state.hw + st.session_state.hd)/h_total if h_total > 0 else 0
 a_pos = (st.session_state.aw + st.session_state.ad)/a_total if a_total > 0 else 0
 
-# ΠΡΟ-ΟΡΙΣΜΟΣ ΜΕΤΑΒΛΗΤΩΝ ΓΙΑ ΑΠΟΦΥΓΗ NAMEERROR
-warning_msg = ""
-proposal = ""
-mode_label = ""
-
 if total_all == 0:
     real_1, real_X, real_2 = prob_1, prob_X, prob_2
     mode_label = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ"
     proposal = "1 (1X)" if prob_1 >= prob_2 else "2 (X2)"
 else:
-    # Υπολογισμός Real Stats
     r1 = st.session_state.hw/h_total if h_total > 0 else 0
     r2 = st.session_state.aw/a_total if a_total > 0 else 0
     rx = ((st.session_state.hd/h_total if h_total > 0 else 0) + (st.session_state.ad/a_total if a_total > 0 else 0)) / 2
     
-    # Normalization για το γράφημα (Sum = 100%)
     total_r = r1 + rx + r2
     real_1, real_X, real_2 = (r1/total_r, rx/total_r, r2/total_r) if total_r > 0 else (0,0,0)
 
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
-    
-    # Λογική Προτάσεων
     if real_X >= 0.40: proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
     elif real_X < 0.15: proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
     elif real_1 > 0.45 and real_2 > 0.45: proposal = "1 (1-2)"
@@ -129,7 +131,6 @@ else:
     elif h_pos >= 2 * a_pos and h_pos > 0: proposal = "1 (1X)"
     else: proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
 
-    # Warnings
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
         mode_label += " (Low Confidence)"
@@ -180,25 +181,10 @@ with c2:
 tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
 with tab1:
     fig = go.Figure()
-    # Σταθερός άξονας X με 1, X, 2
     cats = ["1", "X", "2"]
-    
-    fig.add_trace(go.Bar(
-        name='Booker_Odds', x=cats, y=[prob_1*100, prob_X*100, prob_2*100], 
-        marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], 
-        textposition='auto', insidetextfont=dict(color='white')
-    ))
-    fig.add_trace(go.Bar(
-        name='Performance_Stats', x=cats, y=[real_1*100, real_X*100, real_2*100], 
-        marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], 
-        textposition='auto', insidetextfont=dict(color='white')
-    ))
-    
-    fig.update_layout(
-        barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10),
-        xaxis=dict(type='category', categoryorder='array', categoryarray=cats),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
+    fig.add_trace(go.Bar(name='Booker_Odds', x=cats, y=[prob_1*100, prob_X*100, prob_2*100], marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
+    fig.add_trace(go.Bar(name='Performance_Stats', x=cats, y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], textposition='auto', insidetextfont=dict(color='white')))
+    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10), xaxis=dict(type='category', categoryorder='array', categoryarray=cats), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
