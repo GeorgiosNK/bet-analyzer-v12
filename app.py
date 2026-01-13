@@ -4,9 +4,9 @@ import plotly.graph_objects as go
 import streamlit.components.v1 as components
 
 # ==============================
-# CONFIG & HARDLOCKED THEME UI
+# CONFIG & DYNAMIC UI
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.14.7 MASTER", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.14.8 MASTER FINAL", page_icon="⚽", layout="centered")
 
 # Auto-select JavaScript
 components.html(
@@ -26,24 +26,41 @@ components.html(
 
 st.markdown("""
 <style>
-    /* Sticky Header Logic */
+    /* Sticky Header */
     [data-testid="stVerticalBlock"] > div:has(div.sticky-result) {
         position: sticky; top: 2.8rem; z-index: 1000;
         background: transparent; padding-bottom: 10px;
     }
     
-    /* THEME PROOF CARD - NO MORE WHITE BOXES */
-    .result-card {
-        padding: 1.5rem; border-radius: 15px; text-align: center; margin-bottom: 15px;
-        border: 2px solid #3498db;
-        background-color: rgba(128, 128, 128, 0.05) !important;
-        backdrop-filter: blur(5px);
+    /* Theme-Aware Result Card */
+    @media (prefers-color-scheme: dark) {
+        .result-card {
+            background-color: #1c2833 !important;
+            border: 2px solid #3498db !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.3);
+        }
+        .mode-label { color: #3498db !important; }
+        .proposal-text { color: #ffffff !important; }
+        .guide-item { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
     }
     
-    /* Text colors that adapt to theme automatically */
-    .mode-label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #3498db; }
-    .proposal-text { font-size: 3.8rem; font-weight: 900; line-height: 1; margin: 0; }
+    @media (prefers-color-scheme: light) {
+        .result-card {
+            background-color: #ffffff !important;
+            border: 2px solid #1e3c72 !important;
+            color: #1e3c72 !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .mode-label { color: #666666 !important; }
+        .proposal-text { color: #1e3c72 !important; }
+        .guide-item { background: #f8f9fa; border: 1px solid #dee2e6; }
+    }
 
+    .result-card { padding: 1.5rem; border-radius: 15px; text-align: center; margin-bottom: 15px; }
+    .mode-label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; }
+    .proposal-text { font-size: 3.8rem; font-weight: 900; line-height: 1; margin: 0; }
+    
     .info-text {
         background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 10px;
         border-left: 5px solid #3498db; margin-bottom: 20px; font-size: 0.95rem;
@@ -60,22 +77,19 @@ st.markdown("""
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px; font-weight: bold;
     }
 
-    .guide-item { 
-        padding: 15px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem;
-        background: rgba(128, 128, 128, 0.1); border: 1px solid rgba(128, 128, 128, 0.2);
-    }
+    .guide-item { padding: 15px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem; }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.14.7 MASTER</strong><br>
-    Ο Bet Analyzer συνδυάζει Market Odds και Real Stats για βέλτιστη ανάλυση ποδοσφαιρικών αναμετρήσεων.
+    <strong>⚽ Bet Analyzer Pro v12.14.8</strong><br>
+    Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE & DATA
+# STATE & RESET
 # ==============================
 if 'hw' not in st.session_state: st.session_state.update({'hw':0, 'hd':0, 'hl':0, 'aw':0, 'ad':0, 'al':0})
 if 'o1_str' not in st.session_state: st.session_state.update({'o1_str': "1.00", 'ox_str': "1.00", 'o2_str': "1.00"})
@@ -89,7 +103,7 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.14.7 MASTER")
+    st.caption("Version 12.14.8 FINAL")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     st.header("📊 Αποδόσεις (Odds)")
@@ -106,7 +120,7 @@ draw_odds = max(1.0, safe_float(ox_txt))
 double_odds = max(1.0, safe_float(o2_txt))
 
 # ==============================
-# LOGIC ENGINE (ΣΤΑΘΕΡΕΣ ΕΝΤΟΛΕΣ)
+# LOGIC ENGINE
 # ==============================
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -130,12 +144,19 @@ else:
     real_1, real_X, real_2 = (r1/tr, rx/tr, r2/tr) if tr > 0 else (0,0,0)
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
     
-    if real_X > 0.40: proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
-    elif real_X < 0.15: proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
-    elif real_1 > 0.45 and real_2 > 0.45: proposal = "1 (1-2)"
-    elif a_pos >= 2 * h_pos and a_pos > 0: proposal = "2 (X2)"
-    elif h_pos >= 2 * a_pos and h_pos > 0: proposal = "1 (1X)"
-    else: proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
+    # RULES
+    if real_X >= 0.40: 
+        proposal = "X (X2)" if a_pos >= 2 * h_pos and a_pos > 0 else "X (1X)"
+    elif real_X < 0.15: 
+        proposal = f"{'1' if real_1 >= real_2 else '2'} (1-2)"
+    elif real_1 > 0.45 and real_2 > 0.45: 
+        proposal = "1 (1-2)"
+    elif a_pos >= 2 * h_pos and a_pos > 0: 
+        proposal = "2 (X2)"
+    elif h_pos >= 2 * a_pos and h_pos > 0: 
+        proposal = "1 (1X)"
+    else: 
+        proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
 
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
@@ -147,7 +168,7 @@ confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2
 color = "#2ecc71" if confidence >= 80 else "#f1c40f" if confidence >= 60 else "#e74c3c"
 
 # ==============================
-# DISPLAY
+# MAIN DISPLAY
 # ==============================
 st.markdown(f"""
 <div class="sticky-result">
@@ -168,26 +189,50 @@ if warning_msg: st.markdown(f'<div class="warning-box">{warning_msg}</div>', uns
 st.markdown("### 📝 Στατιστικά Ομάδων")
 c1, c2 = st.columns(2)
 with c1:
-    st.markdown(f'**🏠 Γηπεδούχος** <span class="pos-badge">{h_pos*100:.1f}% Positive Percentage</span>', unsafe_allow_html=True)
+    st.markdown(f'**🏠 Γηπεδούχος** <span class="pos-badge">{h_pos*100:.1f}% Positive Percentage (Wins + Draws)</span>', unsafe_allow_html=True)
     st.number_input("Εντός_Νίκες", 0, 100, key="hw")
     st.number_input("Εντός_Ισοπαλίες", 0, 100, key="hd")
     st.number_input("Εντός_Ήττες", 0, 100, key="hl")
 with c2:
-    st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Positive Percentage</span>', unsafe_allow_html=True)
+    st.markdown(f'**🚀 Φιλοξενούμενος** <span class="pos-badge">{a_pos*100:.1f}% Positive Percentage (Wins + Draws)</span>', unsafe_allow_html=True)
     st.number_input("Εκτός_Νίκες (A)", 0, 100, key="aw")
     st.number_input("Εκτός_Ισοπαλίες (A)", 0, 100, key="ad")
     st.number_input("Εκτός_Ήττες (A)", 0, 100, key="al")
 
+# ==============================
+# TABS (CHART & GUIDE)
+# ==============================
 tab1, tab2 = st.tabs(["📊 Ανάλυση & Γράφημα", "🛡️ Οδηγός Στρατηγικής"])
+
+with tab1:
+    fig = go.Figure()
+    cats = ["1", "X", "2"]
+    fig.add_trace(go.Bar(name='Booker Odds (%)', x=cats, y=[prob_1*100, prob_X*100, prob_2*100], 
+                         marker_color='#FF4B4B', text=[f"{prob_1*100:.1f}%", f"{prob_X*100:.1f}%", f"{prob_2*100:.1f}%"], 
+                         textposition='auto', insidetextfont=dict(color='white')))
+    fig.add_trace(go.Bar(name='Real Performance (%)', x=cats, y=[real_1*100, real_X*100, real_2*100], 
+                         marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], 
+                         textposition='auto', insidetextfont=dict(color='white')))
+    fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=30, b=10), 
+                      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+    st.plotly_chart(fig, use_container_width=True)
+
 with tab2:
     st.markdown("""
     <div class="guide-item" style="border-left: 5px solid #2ecc71;">
-        <strong style="color: #2ecc71;">Confidence >80% (Πράσινο):</strong> Κύρια Επιλογή.<br>
+        <strong style="color: #2ecc71;">Confidence >80% (Πράσινο):</strong><br>
+        Θεώρησέ το ως την "Κύρια Επιλογή" σου. Είναι τα ματς όπου η στατιστική "ασφάλεια" είναι στο μέγιστο επίπεδο.
     </div>
     <div class="guide-item" style="border-left: 5px solid #f1c40f;">
-        <strong style="color: #d4ac0d;">Confidence 61-79% (Κίτρινο):</strong> Επιλογή για κάλυψη.<br>
+        <strong style="color: #d4ac0d;">Confidence 61-79% (Κίτρινο/Πορτοκαλί):</strong><br>
+        Είναι τα ματς για "κάλυψη" (π.χ. αν προτείνει 1, ίσως το 1Χ να είναι πιο σοφό) ή για μικρότερο ποντάρισμα.
     </div>
     <div class="guide-item" style="border-left: 5px solid #e74c3c;">
-        <strong style="color: #e74c3c;">Confidence <=60% (Κόκκινο):</strong> Υψηλό ρίσκο.<br>
+        <strong style="color: #e74c3c;">Confidence =<60% (Κόκκινο):</strong><br>
+        Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
+    </div>
+    <div class="guide-item" style="border-left: 5px solid #3498db;">
+        <strong>Σύστημα Main (Coverage):</strong><br>
+        Το πρώτο σημείο είναι η κύρια επιλογή. Η παρένθεση δείχνει την προτεινόμενη Διπλή Ευκαιρία για κάλυψη.
     </div>
     """, unsafe_allow_html=True)
