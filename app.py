@@ -1,11 +1,38 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit.components.v1 as components
 
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
 st.set_page_config(page_title="Bet Analyzer v12.13.0 PRO", page_icon="⚽", layout="centered")
+
+# SMART JAVASCRIPT FIX: Auto-select & Comma-to-Dot Conversion
+components.html(
+    """
+    <script>
+        const setupInputs = () => {
+            const inputs = window.parent.document.querySelectorAll('input');
+            inputs.forEach(input => {
+                // Auto-select on focus
+                input.addEventListener('focus', function() { this.select(); });
+                
+                // Smart Comma to Dot conversion
+                input.addEventListener('input', function() {
+                    if(this.value.includes(',')) {
+                        this.value = this.value.replace(',', '.');
+                    }
+                });
+            });
+        }
+        // Run setup and repeat to ensure coverage of all elements
+        setTimeout(setupInputs, 1000);
+        setInterval(setupInputs, 3000);
+    </script>
+    """,
+    height=0,
+)
 
 st.markdown("""
 <style>
@@ -37,7 +64,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# APP INFO TEXT - ΣΤΑΘΕΡΟ ΛΕΚΤΙΚΟ
+# APP INFO TEXT
 st.markdown("""
 <div class="info-text">
     <strong>⚽ Bet Analyzer Pro v12.13.0</strong><br>
@@ -51,15 +78,15 @@ st.markdown("""
 if 'hw' not in st.session_state:
     st.session_state.update({'hw':0, 'hd':0, 'hl':0, 'aw':0, 'ad':0, 'al':0})
 
-if 'o1_num' not in st.session_state:
-    st.session_state.update({'o1_num': 1.00, 'ox_num': 1.00, 'o2_num': 1.00})
+if 'o1_str' not in st.session_state:
+    st.session_state.update({'o1_str': "1.00", 'ox_str': "1.00", 'o2_str': "1.00"})
 
 def reset_everything():
     for k in ['hw','hd','hl','aw','ad','al']: 
         st.session_state[k] = 0
-    st.session_state.o1_num = 1.00
-    st.session_state.ox_num = 1.00
-    st.session_state.o2_num = 1.00
+    st.session_state.o1_str = "1.00"
+    st.session_state.ox_str = "1.00"
+    st.session_state.o2_str = "1.00"
 
 # ==============================
 # SIDEBAR
@@ -71,13 +98,18 @@ with st.sidebar:
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
     
     st.header("📊 Αποδόσεις (Odds)")
-    ace_odds = st.number_input("Άσος (1)", min_value=1.0, step=0.01, format="%.2f", key="o1_num")
-    draw_odds = st.number_input("Ισοπαλία (X)", min_value=1.0, step=0.01, format="%.2f", key="ox_num")
-    double_odds = st.number_input("Διπλό (2)", min_value=1.0, step=0.01, format="%.2f", key="o2_num")
+    # HTML Input Mode: Decimal focus
+    o1_input = st.text_input("Άσος (1)", key="o1_str")
+    ox_input = st.text_input("Ισοπαλία (X)", key="ox_str")
+    o2_input = st.text_input("Διπλό (2)", key="o2_str")
 
-    ace_odds = max(1.0, ace_odds)
-    draw_odds = max(1.0, draw_odds)
-    double_odds = max(1.0, double_odds)
+def safe_float(val):
+    try: return float(str(val).replace(',', '.'))
+    except: return 1.00
+
+ace_odds = max(1.0, safe_float(o1_input))
+draw_odds = max(1.0, safe_float(ox_input))
+double_odds = max(1.0, safe_float(o2_input))
 
 # ==============================
 # LOGIC ENGINE
@@ -106,7 +138,6 @@ else:
     real_2 = st.session_state.aw/a_total if a_total > 0 else 0
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
-    # Νέα Λογική Σημείου + Κάλυψης
     if real_X >= 0.40:
         if a_pos >= 2 * h_pos and a_pos > 0: proposal = "X (X2)"
         else: proposal = "X (1X)"
