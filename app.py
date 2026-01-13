@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.3 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.3.8 PRO", page_icon="⚽", layout="centered")
 
 # SMART JAVASCRIPT FIX: Auto-select & Comma-to-Dot Conversion
 components.html(
@@ -63,7 +63,7 @@ st.markdown("""
 # APP INFO TEXT - ΣΤΑΘΕΡΟ ΛΕΚΤΙΚΟ
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.3</strong><br>
+    <strong>⚽ Bet Analyzer Pro</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
@@ -149,11 +149,11 @@ else:
         proposal = "1 (1X)" if h_pos >= a_pos else "2 (X2)"
 
     if (real_1 + real_2) < 0.40:
-        warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
+        warning_msg = "⚠️ ΑΓΩΝΑΣ ΥΨΗΛΟΥ ΚΙΝΔΥΝΟΥ: Τα στατιστικά στοιχεία είναι πολύ χαμηλά, συνιστάται η αποχή."
         mode_label += " (Low Confidence)"
     
     if ace_odds <= 1.50 and real_X > 0.25:
-        warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
+        warning_msg = "⚠️ ΠΑΓΙΔΑ στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
 
 confidence = max(5, min(100, int((1 - abs(real_1 - prob_1) - abs(real_2 - prob_2)) * 100)))
 
@@ -243,7 +243,7 @@ with tab2:
         Είναι τα ματς για "κάλυψη" (π.χ. αν προτείνει 1, ίσως το 1Χ να είναι πιο σοφό) ή για μικρότερο ποντάρισμα.
     </div>
     <div class="guide-item" style="border-left: 5px solid #e74c3c; background: rgba(231, 76, 60, 0.1);">
-        <strong style="color: #e74c3c;">Confidence =<60% (Κόκκινο):</strong><br>
+        <strong style="color: #e74c3c;">Confidence <=60% (Κόκκινο):</strong><br>
         Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
     </div>
     """, unsafe_allow_html=True)
