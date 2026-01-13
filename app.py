@@ -1,30 +1,24 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit.components.v1 as components  # Διορθώθηκε από v11 σε v1
+import streamlit.components.v1 as components
 
 # ==============================
 # CONFIG & PROFESSIONAL CSS
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v12.13.2 PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v12.13.3 PRO", page_icon="⚽", layout="centered")
 
-# Βελτιωμένη JavaScript για αυτόματη επιλογή (Auto-select)
+# JavaScript για Auto-select on focus
 components.html(
     """
     <script>
         const setupAutoSelect = () => {
             const inputs = window.parent.document.querySelectorAll('input[type="number"]');
             inputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.select();
-                });
-                // Για κινητά: επιλογή και με το κλικ
-                input.addEventListener('click', function() {
-                    this.select();
-                });
+                input.addEventListener('focus', function() { this.select(); });
+                input.addEventListener('click', function() { this.select(); });
             });
         }
-        // Εκτέλεση μετά τη φόρτωση
         setTimeout(setupAutoSelect, 1000);
     </script>
     """,
@@ -55,13 +49,14 @@ st.markdown("""
         background: #1e3c72; color: white; padding: 2px 8px; 
         border-radius: 5px; font-size: 0.85rem; margin-left: 10px;
     }
+    .guide-item { padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9rem; }
 </style>
 """, unsafe_allow_html=True)
 
 # APP INFO TEXT
 st.markdown("""
 <div class="info-text">
-    <strong>⚽ Bet Analyzer Pro v12.13.2</strong><br>
+    <strong>⚽ Bet Analyzer Pro v12.13.3</strong><br>
     Ο Bet Analyzer είναι μια προηγμένη εφαρμογή ανάλυσης ποδοσφαιρικών αναμετρήσεων που συνδυάζει τα δεδομένα της στοιχηματικής αγοράς (Market Odds) με τα πραγματικά στατιστικά επιδόσεων των ομάδων (Real Stats).
 </div>
 """, unsafe_allow_html=True)
@@ -83,22 +78,18 @@ def reset_everything():
 # ==============================
 with st.sidebar:
     st.markdown("### 🏆 Bet Analyzer Pro")
-    st.caption("Version 12.13.2 PRO")
+    st.caption("Version 12.13.3 PRO")
     st.divider()
     st.button("🧹 Clear All Stats & Odds", on_click=reset_everything, use_container_width=True)
-    
     st.header("📊 Αποδόσεις (Odds)")
     ace_odds = st.number_input("Άσος (1)", min_value=1.0, step=0.01, format="%.2f", key="o1_num")
     draw_odds = st.number_input("Ισοπαλία (X)", min_value=1.0, step=0.01, format="%.2f", key="ox_num")
     double_odds = st.number_input("Διπλό (2)", min_value=1.0, step=0.01, format="%.2f", key="o2_num")
 
-    ace_odds = max(1.0, ace_odds)
-    draw_odds = max(1.0, draw_odds)
-    double_odds = max(1.0, double_odds)
-
 # ==============================
 # LOGIC ENGINE
 # ==============================
+ace_odds, draw_odds, double_odds = max(1.0, ace_odds), max(1.0, draw_odds), max(1.0, double_odds)
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
 total_all = h_total + a_total
@@ -117,9 +108,17 @@ if is_blind:
     mode_label = "⚖️ BLIND MODE • ΠΡΟΤΑΣΗ"
     proposal = "1 (1X)" if prob_1 >= prob_2 else "2 (X2)"
 else:
+    # ΔΙΟΡΘΩΣΗ: Υπολογισμός Real Stats για σωστή απεικόνιση στο γράφημα
     real_1 = st.session_state.hw/h_total if h_total > 0 else 0
-    real_X = (st.session_state.hd + st.session_state.ad)/total_all if total_all > 0 else 0
     real_2 = st.session_state.aw/a_total if a_total > 0 else 0
+    # Το Real X υπολογίζεται ως το υπόλοιπο ποσοστό για να βγαίνει 100% το γράφημα
+    real_X = (st.session_state.hd/h_total + st.session_state.ad/a_total) / 2 if (h_total > 0 and a_total > 0) else 0
+    
+    # Επανυπολογισμός για να είναι sum=1 στο γράφημα
+    r_sum = real_1 + real_X + real_2
+    if r_sum > 0:
+        real_1, real_X, real_2 = real_1/r_sum, real_X/r_sum, real_2/r_sum
+
     mode_label = "⚖️ ΣΤΑΤΙΣΤΙΚΗ ΥΠΕΡΟΧΗ • ΠΡΟΤΑΣΗ"
 
     if real_X >= 0.40:
@@ -138,7 +137,6 @@ else:
     if (real_1 + real_2) < 0.40:
         warning_msg = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
         mode_label += " (Low Confidence)"
-    
     if ace_odds <= 1.50 and real_X > 0.25:
         warning_msg = "⚠️ TRAP στο Χ: Ένδειξη ότι το φαβορί θα δυσκολευτεί."
 
@@ -190,5 +188,23 @@ with tab1:
     fig.add_trace(go.Bar(name='Performance_Stats', x=["1", "X", "2"], y=[real_1*100, real_X*100, real_2*100], marker_color='#0083B0', text=[f"{real_1*100:.1f}%", f"{real_X*100:.1f}%", f"{real_2*100:.1f}%"], textposition='auto'))
     fig.update_layout(barmode='group', height=350, margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, use_container_width=True)
+
 with tab2:
-    st.markdown("Οδηγός στρατηγικής βάσει Confidence...")
+    st.markdown("""
+    <div class="guide-item" style="border-left: 5px solid #2ecc71; background: rgba(46, 204, 113, 0.1);">
+        <strong style="color: #2ecc71;">Confidence >80% (Πράσινο):</strong><br>
+        Θεώρησέ το ως την "Κύρια Επιλογή" σου. Είναι τα ματς όπου η στατιστική "ασφάλεια" είναι στο μέγιστο επίπεδο.
+    </div>
+    <div class="guide-item" style="border-left: 5px solid #f1c40f; background: rgba(241, 196, 15, 0.1);">
+        <strong style="color: #d4ac0d;">Confidence 61-79% (Κίτρινο/Πορτοκαλί):</strong><br>
+        Είναι τα ματς για "κάλυψη" (π.χ. αν προτείνει 1, ίσως το 1Χ να είναι πιο σοφό) ή για μικρότερο ποντάρισμα.
+    </div>
+    <div class="guide-item" style="border-left: 5px solid #e74c3c; background: rgba(231, 76, 60, 0.1);">
+        <strong style="color: #e74c3c;">Confidence =<60% (Κόκκινο):</strong><br>
+        Ακόμα και αν η πρόταση φαίνεται ελκυστική, το μοντέλο σε προειδοποιεί ότι το ματς είναι "τζόγος".
+    </div>
+    <div class="guide-item" style="border-left: 5px solid #1e3c72; background: rgba(30, 60, 114, 0.1);">
+        <strong>Σύστημα Main (Coverage):</strong><br>
+        Το πρώτο σημείο είναι η κύρια επιλογή. Η παρένθεση δείχνει την προτεινόμενη Διπλή Ευκαιρία για κάλυψη.
+    </div>
+    """, unsafe_allow_html=True)
