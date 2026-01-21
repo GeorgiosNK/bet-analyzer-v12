@@ -64,7 +64,7 @@ def reset_all():
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
-    st.button("🧹 Reset All", on_click=reset_all, use_container_width=True)
+    st.button("🧹 Clear Stats & Odds", on_click=reset_all, use_container_width=True)
     o1_i = st.text_input("Άσος (1)", key="o1")
     ox_i = st.text_input("Ισοπαλία (X)", key="ox")
     o2_i = st.text_input("Διπλό (2)", key="o2")
@@ -164,21 +164,21 @@ st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Νίκες", 0, 100, key="hw")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd")
-    st.number_input("Ήττες", 0, 100, key="hl")
+    st.number_input("Εντός_Νίκες", 0, 100, key="hw")
+    st.number_input("Εντός_Ισοπαλίες", 0, 100, key="hd")
+    st.number_input("Εντός_Ήττες", 0, 100, key="hl")
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Νίκες", 0, 100, key="aw")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad")
-    st.number_input("Ήττες", 0, 100, key="al")
+    st.number_input("Εκτός_Νίκες", 0, 100, key="aw")
+    st.number_input("Εκτός_Ισοπαλίες", 0, 100, key="ad")
+    st.number_input("Εκτός_Ήττες", 0, 100, key="al")
 
 # Plotly Chart
 fig = go.Figure()
 fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
                      text=[f"<b>{pm1*100:.1f}%</b>", f"<b>{pmX*100:.1f}%</b>", f"<b>{pm2*100:.1f}%</b>"],
                      textposition='inside', textfont=dict(color="white", size=14)))
-fig.add_trace(go.Bar(name='Model %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#2ecc71',
+fig.add_trace(go.Bar(name='Real_Stats %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#2ecc71',
                      text=[f"<b>{p1*100:.1f}%</b>", f"<b>{pX*100:.1f}%</b>", f"<b>{p2*100:.1f}%</b>"],
                      textposition='inside', textfont=dict(color="white", size=14)))
 fig.update_layout(barmode='group', height=350, xaxis=dict(type='category'), margin=dict(l=20, r=20, t=20, b=20))
