@@ -8,7 +8,7 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="Bet Analyzer v13.0 VALUE PRO", page_icon="⚽", layout="centered")
 
 # ==============================
-# JS INPUT FIX
+# JS INPUT FIX (Auto-select & Comma to Dot)
 # ==============================
 components.html("""
 <script>
@@ -30,7 +30,7 @@ setInterval(setupInputs, 3000);
 """, height=0)
 
 # ==============================
-# CSS
+# PROFESSIONAL CSS
 # ==============================
 st.markdown("""
 <style>
@@ -56,7 +56,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE INIT
+# STATE INITIALIZATION
 # ==============================
 if 'hw' not in st.session_state:
     st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
@@ -69,103 +69,91 @@ def reset_all():
     st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
 
 # ==============================
-# SIDEBAR
+# SIDEBAR INPUTS
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
-    st.button("🧹 Reset", on_click=reset_all)
-    o1 = st.text_input("Άσος (1)", key="o1")
-    ox = st.text_input("Ισοπαλία (X)", key="ox")
-    o2 = st.text_input("Διπλό (2)", key="o2")
+    st.button("🧹 Reset All", on_click=reset_all, use_container_width=True)
+    st.markdown("---")
+    o1_input = st.text_input("Άσος (1)", key="o1")
+    ox_input = st.text_input("Ισοπαλία (X)", key="ox")
+    o2_input = st.text_input("Διπλό (2)", key="o2")
 
 def sf(x):
-    try: return float(str(x).replace(',','.'))
+    try: 
+        val = float(str(x).replace(',','.'))
+        return val if val > 0 else 1.0
     except: return 1.0
 
-odd1, oddX, odd2 = sf(o1), sf(ox), sf(o2)
+odd1, oddX, odd2 = sf(o1_input), sf(ox_input), sf(o2_input)
 
 # ==============================
-# BASIC COUNTS
+# CALCULATIONS ENGINE
 # ==============================
 h_total = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_total = st.session_state.aw + st.session_state.ad + st.session_state.al
 total_games = h_total + a_total
 
-# ==============================
-# MARKET PROBABILITIES (NO MARGIN)
-# ==============================
+# Market Probabilities (Normalized)
 inv = (1/odd1 + 1/oddX + 1/odd2)
-p_m1 = (1/odd1)/inv
-p_mX = (1/oddX)/inv
-p_m2 = (1/odd2)/inv
+p_m1, p_mX, p_m2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
-# ==============================
-# MODEL PROBABILITIES (BLENDED)
-# ==============================
-alpha = min(1.0, total_games / 20)   # confidence in stats
+# Alpha Factor (Stat Confidence)
+alpha = min(1.0, total_games / 20)
 
+# Blended Model Logic
 h_win_rate = st.session_state.hw / h_total if h_total > 0 else p_m1
 a_win_rate = st.session_state.aw / a_total if a_total > 0 else p_m2
 draw_rate  = (st.session_state.hd + st.session_state.ad) / total_games if total_games > 0 else p_mX
 
 p_1 = alpha * h_win_rate + (1-alpha) * p_m1
 p_2 = alpha * a_win_rate + (1-alpha) * p_m2
-p_X = max(0.01, 1 - p_1 - p_2)
+p_X = max(0.05, 1 - p_1 - p_2) # Ensure min 5% draw
 
-# normalize safety
+# Re-normalization
 s = p_1 + p_X + p_2
 p_1, p_X, p_2 = p_1/s, p_X/s, p_2/s
 
-mode = "⚖️ BLIND MODE" if total_games == 0 else "📊 CALIBRATED MODEL"
-
-# ==============================
-# VALUE (EDGE)
-# ==============================
-v1 = p_1 - p_m1
-vX = p_X - p_mX
-v2 = p_2 - p_m2
-
-values = {'1':v1, 'X':vX, '2':v2}
+# Value Detection (The Edge)
+v1, vX, v2 = p_1 - p_m1, p_X - p_mX, p_2 - p_m2
+values = {'1': v1, 'X': vX, '2': v2}
 best_pick = max(values, key=values.get)
 best_value = values[best_pick]
 
 # ==============================
-# FINAL PROPOSAL
+# PROPOSAL LOGIC
 # ==============================
-proposal = "❌ NO BET"
+mode = "⚖️ BLIND MODE" if total_games == 0 else "📊 CALIBRATED MODEL"
+proposal = "❌ NO VALUE FOUND"
 warning = ""
 
 if best_value >= 0.05:
-    if best_pick == '1':
-        proposal = "1 (VALUE)"
-    elif best_pick == 'X':
-        proposal = "X (VALUE)"
-    else:
-        proposal = "2 (VALUE)"
+    if best_pick == '1': proposal = "1 (VALUE)"
+    elif best_pick == 'X': proposal = "X (VALUE)"
+    else: proposal = "2 (VALUE)"
 else:
-    warning = "⚠️ ΧΩΡΙΣ VALUE – ΑΠΟΧΗ"
+    warning = "⚠️ ΧΑΜΗΛΟ EDGE – ΣΥΝΙΣΤΑΤΑΙ ΑΠΟΧΗ"
 
-# trap warning
+# Trap Warning Rules
 if odd1 <= 1.50 and p_X > 0.25:
-    warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ – ΥΨΗΛΟ Χ"
+    warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ – ΥΨΗΛΗ ΠΙΘΑΝΟΤΗΤΑ Χ"
+if total_games > 0 and (p_1 + p_2) < 0.40:
+    warning = "⚠️ ΥΨΗΛΟ ΡΙΣΚΟ: Πολύ χαμηλά στατιστικά νίκης."
 
-# ==============================
-# CONFIDENCE
-# ==============================
-conf = int(min(100, (total_games/30)*40 + best_value*100))
+# Confidence Scoring
+conf = int(min(100, (alpha * 60) + (best_value * 200)))
 conf = max(5, conf)
-
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
 # ==============================
-# UI RESULT
+# UI OUTPUT
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold">{mode}</div>
-    <div style="font-size:3rem;font-weight:900;color:#1e3c72">{proposal}</div>
-    <div style="font-size:1.5rem;font-weight:bold;color:{color}">
-        {conf}% Confidence
+    <div style="color:gray;font-weight:bold;margin-bottom:10px;">{mode}</div>
+    <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
+    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">
+        {conf}% Confidence Score
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -173,9 +161,8 @@ st.markdown(f"""
 if warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
 
-# ==============================
-# INPUTS
-# ==============================
+# Data Entry
+st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
@@ -188,11 +175,9 @@ with c2:
     st.number_input("Ισοπαλίες", 0, 100, key="ad")
     st.number_input("Ήττες", 0, 100, key="al")
 
-# ==============================
-# CHART
-# ==============================
+# Visualization
 fig = go.Figure()
-fig.add_bar(name='Bookmaker %', x=['1','X','2'], y=[p_m1*100, p_mX*100, p_m2*100])
-fig.add_bar(name='Model %', x=['1','X','2'], y=[p_1*100, p_X*100, p_2*100])
-fig.update_layout(barmode='group', height=300)
+fig.add_trace(go.Bar(name='Bookmaker %', x=['1','X','2'], y=[p_m1*100, p_mX*100, p_m2*100], marker_color='#1e3c72'))
+fig.add_trace(go.Bar(name='Model %', x=['1','X','2'], y=[p_1*100, p_X*100, p_2*100], marker_color='#2ecc71'))
+fig.update_layout(barmode='group', height=350, margin=dict(l=20, r=20, t=20, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
 st.plotly_chart(fig, use_container_width=True)
