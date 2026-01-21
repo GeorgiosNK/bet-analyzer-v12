@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v13.0.3 VALUE PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v13.0.6 FINAL PRO", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX
@@ -84,11 +84,11 @@ h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
 total = h_t + a_t
 
-# Market
+# Market Probabilities
 inv = (1/odd1 + 1/oddX + 1/odd2)
 pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
-# Model (Alpha Calibration)
+# Model Probabilities (Alpha)
 alpha = min(1.0, total / 20)
 h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
 a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
@@ -98,50 +98,52 @@ pX = max(0.05, 1 - p1 - p2)
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
-# Value/Edge
+# Value (Edge)
 v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# ΔΙΟΡΘΩΜΕΝΗ ΛΟΓΙΚΗ ΠΡΟΤΑΣΗΣ v13.0.3
+# FINAL LOGIC ENGINE v13.0.6
 # ==============================
-# Πρώτα ελέγχουμε την καθαρή στατιστική υπεροχή
-if p1 >= 0.50:
-    best_p = '1'
+h_pos = st.session_state.hw + st.session_state.hd
+a_pos = st.session_state.aw + st.session_state.ad
+
+# 1. Καθορισμός Κυρίαρχου Σημείου
+if p1 >= 0.52: 
+    base = "1"
     edge = v1
-elif p2 >= 0.50:
-    best_p = '2'
+elif p2 >= 0.52: 
+    base = "2"
     edge = v2
+elif pX >= 0.40:
+    # Περίπτωση κυρίαρχης ισοπαλίας
+    edge = vX
+    if st.session_state.aw > st.session_state.hw or a_pos > h_pos:
+        base = "X (X2)"
+    elif st.session_state.hw > st.session_state.aw or h_pos > a_pos:
+        base = "X (1X)"
+    else:
+        base = "X"
 else:
-    # Αν κανείς δεν έχει >50%, επιλέγουμε το καλύτερο Value
-    best_p = max(vals, key=vals.get)
-    edge = vals[best_p]
+    # Περίπτωση Ντέρμπι ή Value σε χαμηλότερα ποσοστά
+    best_v = max(vals, key=vals.get)
+    edge = vals[best_v]
+    if (abs(p1 - p2) < 0.10): # Πολύ κοντά οι ομάδες
+        base = "1X" if (h_pos >= a_pos) else "X2"
+    else:
+        base = best_v
 
-mode = "⚖️ BLIND MODE" if total == 0 else "📊 CALIBRATED MODEL"
-# Προσθήκη Draw Flag αν το Χ είναι δυνατό
-draw_flag = "X" if (vX > 0.05 or pX > 0.25) else ""
+# Προσθήκη Σήμανσης
+suffix = " (VALUE)" if edge >= 0.05 else " (LOW CONF)"
+proposal = f"{base}{suffix}"
 
-# Τελικό σημείο
-if best_p == '1':
-    proposal = "1X" if draw_flag else "1"
-elif best_p == '2':
-    proposal = "X2" if draw_flag else "2"
-else:
-    proposal = "X"
-
-# Σήμανση Value
-if edge >= 0.05:
-    proposal += " (VALUE)"
-else:
-    proposal += " (LOW CONF)"
-
-# Warning Messages
+# Warnings
 warning = ""
-if edge < 0.05: warning = "⚠️ ΧΑΜΗΛΟ EDGE: Το μοντέλο δεν βλέπει λάθος στις αποδόσεις."
-if odd1 <= 1.50 and pX > 0.25: warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ: Υψηλή πιθανότητα Ισοπαλίας."
-if total > 0 and (p1 + p2) < 0.40: warning = "⚠️ HIGH RISK: Πολύ χαμηλά στατιστικά νίκης."
+if odd1 <= 1.55 and pX > 0.28: warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ: Στατιστικά αυξημένη πιθανότητα Χ."
+if total > 0 and (p1 + p2) < 0.35: warning = "⚠️ HIGH RISK MATCH: Πολύ χαμηλά ποσοστά νίκης."
 
-conf = int(min(100, (alpha * 50) + (max(0, edge) * 250)))
+# Confidence Score
+conf = int(min(100, (alpha * 55) + (max(0, edge) * 220)))
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
 # ==============================
@@ -149,11 +151,9 @@ color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{mode}</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL" if total > 0 else "⚖️ BLIND MODE"}</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
-    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">
-        {conf}% Confidence Score
-    </div>
+    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -177,14 +177,12 @@ with c2:
 # ==============================
 fig = go.Figure()
 fig.add_trace(go.Bar(
-    name='Bookmaker %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100],
-    marker_color='#1e3c72',
+    name='Bookmaker %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
     text=[f"<b>{pm1*100:.1f}%</b>", f"<b>{pmX*100:.1f}%</b>", f"<b>{pm2*100:.1f}%</b>"],
     textposition='inside', textfont=dict(color="white", size=14)
 ))
 fig.add_trace(go.Bar(
-    name='Model %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100],
-    marker_color='#2ecc71',
+    name='Model %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#2ecc71',
     text=[f"<b>{p1*100:.1f}%</b>", f"<b>{pX*100:.1f}%</b>", f"<b>{p2*100:.1f}%</b>"],
     textposition='inside', textfont=dict(color="white", size=14)
 ))
