@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v13.0.6 FINAL PRO", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v13.0.7 SAFE GUARD", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX
@@ -84,11 +84,9 @@ h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
 total = h_t + a_t
 
-# Market Probabilities
 inv = (1/odd1 + 1/oddX + 1/odd2)
 pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
-# Model Probabilities (Alpha)
 alpha = min(1.0, total / 20)
 h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
 a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
@@ -98,25 +96,24 @@ pX = max(0.05, 1 - p1 - p2)
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
-# Value (Edge)
 v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v13.0.6
+# FINAL LOGIC ENGINE v13.0.7
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
 
-# 1. Καθορισμός Κυρίαρχου Σημείου
-if p1 >= 0.52: 
+# 1. ΠΡΟΤΕΡΑΙΟΤΗΤΑ ΣΕ ΦΑΒΟΡΙ (Αποφυγή λάθος Value σε αουτσάιντερ)
+if p1 >= 0.50:
     base = "1"
     edge = v1
-elif p2 >= 0.52: 
+elif p2 >= 0.50:
     base = "2"
     edge = v2
+# 2. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X)
 elif pX >= 0.40:
-    # Περίπτωση κυρίαρχης ισοπαλίας
     edge = vX
     if st.session_state.aw > st.session_state.hw or a_pos > h_pos:
         base = "X (X2)"
@@ -124,11 +121,11 @@ elif pX >= 0.40:
         base = "X (1X)"
     else:
         base = "X"
+# 3. ΚΑΝΟΝΑΣ VALUE / ΝΤΕΡΜΠΙ
 else:
-    # Περίπτωση Ντέρμπι ή Value σε χαμηλότερα ποσοστά
     best_v = max(vals, key=vals.get)
     edge = vals[best_v]
-    if (abs(p1 - p2) < 0.10): # Πολύ κοντά οι ομάδες
+    if abs(p1 - p2) < 0.12:
         base = "1X" if (h_pos >= a_pos) else "X2"
     else:
         base = best_v
@@ -142,7 +139,6 @@ warning = ""
 if odd1 <= 1.55 and pX > 0.28: warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ: Στατιστικά αυξημένη πιθανότητα Χ."
 if total > 0 and (p1 + p2) < 0.35: warning = "⚠️ HIGH RISK MATCH: Πολύ χαμηλά ποσοστά νίκης."
 
-# Confidence Score
 conf = int(min(100, (alpha * 55) + (max(0, edge) * 220)))
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
@@ -172,12 +168,10 @@ with c2:
     st.number_input("Ισοπαλίες", 0, 100, key="ad")
     st.number_input("Ήττες", 0, 100, key="al")
 
-# ==============================
-# CHART WITH WHITE BOLD LABELS
-# ==============================
+# Chart
 fig = go.Figure()
 fig.add_trace(go.Bar(
-    name='Bookmaker %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
+    name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
     text=[f"<b>{pm1*100:.1f}%</b>", f"<b>{pmX*100:.1f}%</b>", f"<b>{pm2*100:.1f}%</b>"],
     textposition='inside', textfont=dict(color="white", size=14)
 ))
@@ -186,9 +180,5 @@ fig.add_trace(go.Bar(
     text=[f"<b>{p1*100:.1f}%</b>", f"<b>{pX*100:.1f}%</b>", f"<b>{p2*100:.1f}%</b>"],
     textposition='inside', textfont=dict(color="white", size=14)
 ))
-fig.update_layout(
-    barmode='group', height=350, xaxis=dict(type='category'),
-    margin=dict(l=20, r=20, t=20, b=20),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-)
+fig.update_layout(barmode='group', height=350, xaxis=dict(type='category'), margin=dict(l=20, r=20, t=20, b=20))
 st.plotly_chart(fig, use_container_width=True)
