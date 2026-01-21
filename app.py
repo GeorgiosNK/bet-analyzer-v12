@@ -5,10 +5,10 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v13.0.7 SAFE GUARD", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v13.0.8 UPSET DETECTOR", page_icon="⚽", layout="centered")
 
 # ==============================
-# JS INPUT FIX
+# JS INPUT FIX (Auto-select & Comma to Dot)
 # ==============================
 components.html("""
 <script>
@@ -30,7 +30,7 @@ setInterval(setupInputs, 3000);
 """, height=0)
 
 # ==============================
-# CSS
+# PROFESSIONAL CSS
 # ==============================
 st.markdown("""
 <style>
@@ -48,7 +48,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE
+# STATE INITIALIZATION
 # ==============================
 if 'hw' not in st.session_state:
     st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
@@ -60,7 +60,7 @@ def reset_all():
     st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
 
 # ==============================
-# SIDEBAR
+# SIDEBAR INPUTS
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
@@ -78,15 +78,17 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS
+# CALCULATIONS ENGINE
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
 total = h_t + a_t
 
+# Market Probabilities
 inv = (1/odd1 + 1/oddX + 1/odd2)
 pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
+# Model Probabilities (Alpha Calibration)
 alpha = min(1.0, total / 20)
 h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
 a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
@@ -96,23 +98,33 @@ pX = max(0.05, 1 - p1 - p2)
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
+# Value (Edge)
 v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v13.0.7
+# FINAL LOGIC ENGINE v13.0.8 (UPSET DETECTOR)
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
 
-# 1. ΠΡΟΤΕΡΑΙΟΤΗΤΑ ΣΕ ΦΑΒΟΡΙ (Αποφυγή λάθος Value σε αουτσάιντερ)
-if p1 >= 0.50:
+# Υπολογισμός Confidence για χρήση στη λογική
+best_v_key = max(vals, key=vals.get)
+current_edge = vals[best_v_key]
+conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
+
+# 1. ΚΑΝΟΝΑΣ UPSET (Κόντρα στο ψεύτικο φαβορί)
+if conf < 25 and st.session_state.aw > st.session_state.hw:
+    base = "X2 (UPSET ALERT)"
+    edge = v2
+# 2. ΠΡΟΤΕΡΑΙΟΤΗΤΑ ΣΕ ΣΤΑΤΙΣΤΙΚΟ ΦΑΒΟΡΙ
+elif p1 >= 0.50:
     base = "1"
     edge = v1
 elif p2 >= 0.50:
     base = "2"
     edge = v2
-# 2. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X)
+# 3. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X)
 elif pX >= 0.40:
     edge = vX
     if st.session_state.aw > st.session_state.hw or a_pos > h_pos:
@@ -121,26 +133,25 @@ elif pX >= 0.40:
         base = "X (1X)"
     else:
         base = "X"
-# 3. ΚΑΝΟΝΑΣ VALUE / ΝΤΕΡΜΠΙ
+# 4. ΚΑΝΟΝΑΣ VALUE / ΝΤΕΡΜΠΙ
 else:
-    best_v = max(vals, key=vals.get)
-    edge = vals[best_v]
+    edge = current_edge
     if abs(p1 - p2) < 0.12:
         base = "1X" if (h_pos >= a_pos) else "X2"
     else:
-        base = best_v
+        base = best_v_key
 
-# Προσθήκη Σήμανσης
+# Τελικό Suffix
 suffix = " (VALUE)" if edge >= 0.05 else " (LOW CONF)"
 proposal = f"{base}{suffix}"
+
+# Χρώμα Confidence
+color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
 # Warnings
 warning = ""
 if odd1 <= 1.55 and pX > 0.28: warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ: Στατιστικά αυξημένη πιθανότητα Χ."
 if total > 0 and (p1 + p2) < 0.35: warning = "⚠️ HIGH RISK MATCH: Πολύ χαμηλά ποσοστά νίκης."
-
-conf = int(min(100, (alpha * 55) + (max(0, edge) * 220)))
-color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
 # ==============================
 # UI OUTPUT
@@ -168,7 +179,9 @@ with c2:
     st.number_input("Ισοπαλίες", 0, 100, key="ad")
     st.number_input("Ήττες", 0, 100, key="al")
 
-# Chart
+# ==============================
+# CHART WITH WHITE BOLD LABELS
+# ==============================
 fig = go.Figure()
 fig.add_trace(go.Bar(
     name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
