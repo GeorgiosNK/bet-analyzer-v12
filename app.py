@@ -5,10 +5,10 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.0.0 STRICT ORDER", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.0.0", page_icon="⚽", layout="centered")
 
 # ==============================
-# JS INPUT FIX
+# JS INPUT FIX (Auto-select & Comma to Dot)
 # ==============================
 components.html("""
 <script>
@@ -30,7 +30,7 @@ setInterval(setupInputs, 3000);
 """, height=0)
 
 # ==============================
-# CSS
+# PROFESSIONAL CSS
 # ==============================
 st.markdown("""
 <style>
@@ -48,7 +48,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE
+# STATE INITIALIZATION
 # ==============================
 if 'hw' not in st.session_state:
     st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
@@ -60,7 +60,7 @@ def reset_all():
     st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
 
 # ==============================
-# SIDEBAR
+# SIDEBAR INPUTS
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
@@ -78,15 +78,17 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS
+# CALCULATIONS ENGINE
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
 total = h_t + a_t
 
+# Market Probabilities
 inv = (1/odd1 + 1/oddX + 1/odd2)
 pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
+# Model Probabilities (Alpha Calibration)
 alpha = min(1.0, total / 20)
 h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
 a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
@@ -96,53 +98,60 @@ pX = max(0.05, 1 - p1 - p2)
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
+# Value (Edge)
 v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v13.0.9 (STRICT ORDER)
+# FINAL LOGIC ENGINE v17.0.3
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
-
 best_v_key = max(vals, key=vals.get)
 current_edge = vals[best_v_key]
 conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
 
-# --- ΙΕΡΑΡΧΙΑ ΑΠΟΦΑΣΕΩΝ ---
+# --- ΙΕΡΑΡΧΙΑ ΜΕ ΕΞΥΠΝΗ ΚΑΛΥΨΗ ---
 
-# 1. UPSET DETECTOR (Αν το confidence είναι χαμηλό και ο φιλοξενούμενος έχει νίκες)
+# 1. UPSET DETECTOR
 if conf < 30 and st.session_state.aw > st.session_state.hw:
     base = "X2 (UPSET ALERT)"
     edge = v2
-# 2. ΚΑΘΑΡΟ ΦΑΒΟΡΙ (Πάνω από 55% για να αποφεύγουμε τα οριακά)
+
+# 2. ΚΑΘΑΡΟ ΦΑΒΟΡΙ (>= 55%)
 elif p1 >= 0.55:
-    base = "1"
+    # Κάλυψη μόνο αν ο φιλοξενούμενος έχει τουλάχιστον 70% των θετικών αποτελεσμάτων του γηπεδούχου
+    base = "1 (1X)" if (a_pos >= h_pos * 0.7 and total > 5) else "1"
     edge = v1
 elif p2 >= 0.55:
-    base = "2"
+    base = "2 (X2)" if (h_pos >= a_pos * 0.7 and total > 5) else "2"
     edge = v2
-# 3. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X)
+
+# 3. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X >= 40%)
 elif pX >= 0.40:
     edge = vX
-    if st.session_state.aw > st.session_state.hw or a_pos > h_pos:
-        base = "X (X2)"
-    elif st.session_state.hw > st.session_state.aw or h_pos > a_pos:
+    # Εμφάνιση κάλυψης αν η διαφορά θετικών αποτελεσμάτων είναι πάνω από 1
+    if h_pos > a_pos + 1:
         base = "X (1X)"
+    elif a_pos > h_pos + 1:
+        base = "X (X2)"
     else:
         base = "X"
-# 4. DEFAULT: ΤΟ ΣΗΜΕΙΟ ΜΕ ΤΟ ΜΕΓΑΛΥΤΕΡΟ VALUE
+
+# 4. DEFAULT VALUE / ΝΤΕΡΜΠΙ
 else:
     edge = current_edge
     if abs(p1 - p2) < 0.12:
-        base = "1X" if (h_pos >= a_pos) else "X2"
+        if h_pos > a_pos + 1: base = "X (1X)"
+        elif a_pos > h_pos + 1: base = "X (X2)"
+        else: base = "X"
     else:
         base = best_v_key
 
 proposal = f"{base} {'(VALUE)' if edge >= 0.05 else '(LOW CONF)'}"
-
-# UI Colors & Warnings
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
+
+# Warnings
 warning = ""
 if odd1 <= 1.55 and pX > 0.28: warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ: Στατιστικά αυξημένη πιθανότητα Χ."
 if total > 0 and (p1 + p2) < 0.35: warning = "⚠️ HIGH RISK MATCH: Πολύ χαμηλά ποσοστά νίκης."
