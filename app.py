@@ -2,12 +2,16 @@ import streamlit as st
 import plotly.graph_objects as go
 
 # ==============================
-# CONFIG & CSS
+# CONFIG & CSS (Αυστηρά v17.0.6 Style)
 # ==============================
 st.set_page_config(page_title="Bet Analyzer v17.0.7", page_icon="⚽", layout="centered")
 
 st.markdown("""
 <style>
+/* Auto-select κειμένου για γρήγορη εισαγωγή */
+input {
+    select-all: true;
+}
 .result-card {
     background: #ffffff; padding: 1.5rem; border-radius: 15px;
     border: 2px solid #1e3c72; text-align: center;
@@ -18,86 +22,88 @@ st.markdown("""
     border-radius: 8px; border: 1px solid #ffeeba; margin: 10px 0;
     font-weight: bold; text-align: center;
 }
-/* Διόρθωση για αυτόματη επιλογή κειμένου στα inputs */
-input {
-    select-all: true;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE & INPUTS (Επαναφορά λειτουργικότητας)
+# SIDEBAR (Control Panel v17.0.6)
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
-    # Χρήση st.number_input με step=0 για καλύτερο έλεγχο
-    o1 = st.number_input("Άσος (1)", value=1.00, step=0.01, format="%.2f")
-    ox = st.number_input("Ισοπαλία (X)", value=1.00, step=0.01, format="%.2f")
-    o2 = st.number_input("Διπλό (2)", value=1.00, step=0.01, format="%.2f")
+    if st.button("清理 Stats & Odds", use_container_width=True):
+        st.rerun()
+    
+    # Text inputs για αποδόσεις με υποστήριξη υποδιαστολής
+    o1_raw = st.text_input("Άσος (1)", value="1.00")
+    ox_raw = st.text_input("Ισοπαλία (X)", value="1.00")
+    o2_raw = st.text_input("Διπλό (2)", value="1.00")
 
-# --- Στατιστικά Εισαγωγής ---
-st.subheader("Στατιστικά Ομάδων")
+def parse_odd(val):
+    try: return float(val.replace(',', '.'))
+    except: return 1.0
+
+odd1, oddX, odd2 = parse_odd(o1_raw), parse_odd(ox_raw), parse_odd(o2_raw)
+
+# ==============================
+# ΣΤΑΤΙΣΤΙΚΑ (Layout v17.0.6)
+# ==============================
+st.subheader("Στατιστικά (0 αν δεν υπάρχουν δεδομένα)")
 c1, c2 = st.columns(2)
 with c1:
     st.markdown("🏠 **ΓΗΠΕΔΟΥΧΟΣ**")
-    hw = st.number_input("Νίκες", 0, 100, key="hw_in")
-    hd = st.number_input("Ισοπαλίες", 0, 100, key="hd_in")
-    hl = st.number_input("Ήττες", 0, 100, key="hl_in")
+    hw = st.number_input("Νίκες", 0, 100, key="hw")
+    hd = st.number_input("Ισοπαλίες", 0, 100, key="hd")
+    hl = st.number_input("Ήττες", 0, 100, key="hl")
 with c2:
     st.markdown("🚀 **ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ**")
-    aw = st.number_input("Νίκες", 0, 100, key="aw_in")
-    ad = st.number_input("Ισοπαλίες", 0, 100, key="ad_in")
-    al = st.number_input("Ήττες", 0, 100, key="al_in")
+    aw = st.number_input("Νίκες", 0, 100, key="aw")
+    ad = st.number_input("Ισοπαλίες", 0, 100, key="ad")
+    al = st.number_input("Ήττες", 0, 100, key="al")
 
 # ==============================
-# ENGINE (v17.0.7 Logic)
+# ENGINE (v17.0.7 Core Logic)
 # ==============================
-h_t = hw + hd + hl
-a_t = aw + ad + al
+h_t, a_t = (hw+hd+hl), (aw+ad+al)
 total = h_t + a_t
 
-# Υπολογισμός Γκανιότας & Πιθανοτήτων Bookie
-inv = (1/o1 + 1/ox + 1/o2)
-pm1, pmX, pm2 = (1/o1)/inv, (1/ox)/inv, (1/o2)/inv
+# Bookie Probs
+inv = (1/odd1 + 1/oddX + 1/odd2)
+pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
-# Real Stats Logic
+# Real Stats
 alpha = min(1.0, total / 15)
 h_wr = hw / h_t if h_t > 0 else pm1
 a_wr = aw / a_t if a_t > 0 else pm2
 p1 = alpha * h_wr + (1-alpha) * pm1
 p2 = alpha * a_wr + (1-alpha) * pm2
 pX = max(0.01, 1 - p1 - p2)
-s_total = p1 + pX + p2
-p1, pX, p2 = p1/s_total, pX/s_total, p2/s_total
+p_sum = p1 + pX + p2
+p1, pX, p2 = p1/p_sum, pX/p_sum, p2/p_sum
 
-# Value Check
+# Value & Confidence
 v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 best_v_key = max(vals, key=vals.get)
 edge = vals[best_v_key]
 conf = int(min(100, (alpha * 55) + (max(0, edge) * 220)))
 
-# --- HIERARCHY v17.0.7 με τις διορθώσεις σου ---
+# --- HIERARCHY LOGIC (Including new 2.80 Rule) ---
 if pX < 0.15:
     res = "1" if p1 > p2 else "2"
-    odd_check = o1 if res == "1" else o2
-    if odd_check > 2.80: 
-        base = f"{res} ({res}{'X' if res=='1' else '2'})" # π.χ. 1 (1X)
-    else: 
-        base = res
+    o_check = odd1 if res == "1" else odd2
+    if o_check > 2.80: base = f"{res} ({res}{'X' if res=='1' else '2'})"
+    else: base = res
 elif pX >= 0.40:
     base = "X"
 elif abs(p1 - p2) < 0.12:
     base = "X"
 else:
     res = best_v_key
-    odd_check = o1 if res == "1" else o2
-    if odd_check > 2.80:
-        base = f"{res} ({res}{'X' if res=='1' else '2'})"
-    else:
-        base = res
+    o_check = odd1 if res == "1" else odd2
+    if o_check > 2.80: base = f"{res} ({res}{'X' if res=='1' else '2'})"
+    else: base = res
 
-# Προσθήκη κάλυψης αν χρειάζεται (Dominant point coverage)
+# Προσθήκη Κάλυψης (Dominant Point)
 if pX >= 0.15 and pX < 0.40 and abs(p1-p2) >= 0.12:
     if (hw + hd) > (aw + ad): base = f"{base} (1X)"
     else: base = f"{base} (X2)"
@@ -105,15 +111,15 @@ if pX >= 0.15 and pX < 0.40 and abs(p1-p2) >= 0.12:
 proposal = f"{base} (VALUE)"
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
-# Warnings
+# Warning Logic
 warning = ""
-if total > 0 and (p1 + p2) < 0.40: 
+if total > 0 and (p1 + p2) < 0.40:
     warning = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
-elif o1 <= 1.55 and pX > 0.28: 
+elif odd1 <= 1.55 and pX > 0.28:
     warning = "⚠️ ΠΑΓΙΔΑ ΣΤΟ Χ: Το φαβορί δυσκολεύεται στα στατιστικά."
 
 # ==============================
-# UI OUTPUT
+# UI OUTPUT (v17.0.6 Layout)
 # ==============================
 st.markdown(f"""
 <div class="result-card">
@@ -123,7 +129,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-if warning: st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
+if warning:
+    st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
 
 # Γράφημα
 fig = go.Figure()
