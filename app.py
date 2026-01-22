@@ -1,111 +1,182 @@
 import streamlit as st
-import pandas as pd
 import plotly.graph_objects as go
+import streamlit.components.v1 as components
 
-# --- CONFIGURATION & STYLING ---
-st.set_page_config(page_title="Real Stats Predictor v17.2.0", layout="wide")
+# ==============================
+# CONFIG
+# ==============================
+st.set_page_config(page_title="Bet Analyzer v17.2.0", page_icon="⚽", layout="centered")
 
+# ==============================
+# JS INPUT FIX (Auto-select & Comma to Dot) - ΑΘΙΚΤΟ
+# ==============================
+components.html("""
+<script>
+const setupInputs = () => {
+    const inputs = window.parent.document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() { this.select(); });
+        input.setAttribute('inputmode', 'decimal');
+        input.addEventListener('input', function() {
+            if(this.value.includes(',')) {
+                this.value = this.value.replace(',', '.');
+            }
+        });
+    });
+}
+setTimeout(setupInputs, 1000);
+setInterval(setupInputs, 3000);
+</script>
+""", height=0)
+
+# ==============================
+# PROFESSIONAL CSS - ΑΘΙΚΤΟ
+# ==============================
 st.markdown("""
-    <style>
-    .main { background-color: #f5f7f9; }
-    .stMetric { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+.result-card {
+    background: #ffffff; padding: 1.5rem; border-radius: 15px;
+    border: 2px solid #1e3c72; text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.warning-box {
+    background-color: #fff3cd; color: #856404; padding: 12px; 
+    border-radius: 8px; border: 1px solid #ffeeba; margin: 10px 0;
+    font-weight: bold; text-align: center;
+}
+</style>
+""", unsafe_allow_html=True)
 
-def run_analysis():
-    st.title("⚽ Real Stats Analysis v17.2.0")
-    
-    # --- INPUT SECTION ---
-    with st.sidebar:
-        st.header("📌 Αποδόσεις Bookie")
-        o1 = st.number_input("Άσος (1)", value=2.70, format="%.2f")
-        oX = st.number_input("Ισοπαλία (X)", value=3.60, format="%.2f")
-        o2 = st.number_input("Διπλό (2)", value=2.50, format="%.2f")
-        
-        st.divider()
-        st.header("🏠 Γηπεδούχος")
-        h_w = st.number_input("Νίκες (Ε)", value=3, step=1)
-        h_d = st.number_input("Ισοπαλίες (Ε)", value=0, step=1)
-        h_l = st.number_input("Ήττες (Ε)", value=0, step=1)
-        
-        st.header("🚀 Φιλοξενούμενος")
-        a_w = st.number_input("Νίκες (Φ)", value=1, step=1)
-        a_d = st.number_input("Ισοπαλίες (Φ)", value=1, step=1)
-        a_l = st.number_input("Ήττες (Φ)", value=1, step=1)
+# ==============================
+# STATE INITIALIZATION - ΑΘΙΚΤΟ
+# ==============================
+if 'hw' not in st.session_state:
+    st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
+if 'o1' not in st.session_state:
+    st.session_state.update({'o1':"1.00",'ox':"1.00",'o2':"1.00"})
 
-    # --- CALCULATIONS (LOGIC) ---
-    # 1. Bookie Probabilities
-    total_implied = (1/o1) + (1/oX) + (1/o2)
-    p1_b, pX_b, p2_b = (1/o1)/total_implied, (1/oX)/total_implied, (1/o2)/total_implied
+def reset_all():
+    for k in ['hw','hd','hl','aw','ad','al']: st.session_state[k] = 0
+    st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
 
-    # 2. Real Stats (v17.2.0 Core)
-    h_tot, a_tot = (h_w + h_d + h_l), (a_w + a_d + a_l)
-    
-    if h_tot == 0 or a_tot == 0:
-        st.error("⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended.")
-        return
+# ==============================
+# SIDEBAR INPUTS - ΑΘΙΚΤΟ
+# ==============================
+with st.sidebar:
+    st.header("🏆 Control Panel")
+    st.button("🧹 Clear Stats & Odds", on_click=reset_all, use_container_width=True)
+    o1_i = st.text_input("Άσος (1)", key="o1")
+    ox_i = st.text_input("Ισοπαλία (X)", key="ox")
+    o2_i = st.text_input("Διπλό (2)", key="o2")
 
-    p1_r = h_w / h_tot
-    pX_r = (h_d + a_d) / (h_tot + a_tot)
-    p2_r = a_w / a_tot
-    
-    # Alpha Calibration 0.5
-    p1_f = (p1_r * 0.5) + (p1_b * 0.5)
-    pX_f = (pX_r * 0.5) + (pX_b * 0.5)
-    p2_f = (p2_r * 0.5) + (p2_b * 0.5)
-    
-    norm = p1_f + pX_f + p2_f
-    p1, pX, p2 = p1_f/norm, pX_f/norm, p2_f/norm
+def sf(x):
+    try: 
+        v = float(str(x).replace(',','.'))
+        return v if v > 0 else 1.0
+    except: return 1.0
 
-    # 3. DECISION LOGIC (ΟΙ ΚΑΝΟΝΕΣ ΣΟΥ)
-    if (p1 + p2) < 0.40:
-        st.warning("⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended.")
-    
-    # Προσδιορισμός Κυρίαρχου
-    if p1 > pX and p1 > p2: primary, p_odds = "1", o1
-    elif p2 > p1 and p2 > pX: primary, p_odds = "2", o2
-    else: primary, p_odds = "X", oX
+odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
-    # ΚΑΝΟΝΑΣ: Κάλυψη αν απόδοση >= 2.80 και υπάρχει "σχισμή" (v17.2.0)
-    if p_odds >= 2.80:
-        if primary == "1" and (pX > 0.10 or a_d > 0): suggestion = "1 (1X)"
-        elif primary == "2" and (pX > 0.10 or h_d > 0): suggestion = "2 (X2)"
-        else: suggestion = primary
+# ==============================
+# CALCULATIONS ENGINE - ΑΘΙΚΤΟ
+# ==============================
+h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
+a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
+total = h_t + a_t
+
+inv = (1/odd1 + 1/oddX + 1/odd2)
+pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
+
+alpha = min(1.0, total / 15)
+h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
+a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
+p1 = alpha * h_wr + (1-alpha) * pm1
+p2 = alpha * a_wr + (1-alpha) * pm2
+pX = max(0.01, 1 - p1 - p2)
+s = p1 + pX + p2
+p1, pX, p2 = p1/s, pX/s, p2/s
+
+v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
+vals = {'1': v1, 'X': vX, '2': v2}
+
+# ==============================
+# FINAL LOGIC ENGINE v17.2.0 (ΕΝΣΩΜΑΤΩΣΗ ΚΑΛΥΨΗΣ 2.80)
+# ==============================
+h_pos = st.session_state.hw + st.session_state.hd
+a_pos = st.session_state.aw + st.session_state.ad
+best_v_key = max(vals, key=vals.get)
+current_edge = vals[best_v_key]
+conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
+
+# 1. Καθορισμός βασικού σημείου από το Value
+res = best_v_key
+odd_check = odd1 if res == "1" else oddX if res == "X" else odd2
+
+# 2. Έλεγχος αν το ματς είναι καθαρό X (Stats ή Derby)
+if pX >= 0.40 or (abs(p1 - p2) < 0.12 and res == "X"):
+    if h_pos > a_pos + 1: base = "X (1X)"
+    elif a_pos > h_pos + 1: base = "X (X2)"
+    else: base = "X"
+
+# 3. Έλεγχος για σημεία 1 ή 2 και ΝΕΑ ΛΟΓΙΚΗ ΚΑΛΥΨΗΣ (v17.2.0)
+else:
+    # Εφαρμογή κανόνα: Αν απόδοση >= 2.80, δώσε κάλυψη σε παρένθεση αν υπάρχει "σχισμή"
+    if odd_check >= 2.80:
+        if res == "1" and (pX > 0.10 or st.session_state.ad > 0 or st.session_state.hd > 0):
+            base = "1 (1X)"
+        elif res == "2" and (pX > 0.10 or st.session_state.hd > 0 or st.session_state.ad > 0):
+            base = "2 (X2)"
+        else:
+            base = res
+    # Διατήρηση παλιάς λογικής για αποδόσεις < 2.80 με στατιστική ανάγκη κάλυψης
+    elif 0.15 <= pX < 0.40:
+        cov = "1X" if res == "1" else "X2"
+        base = f"{res} ({cov})"
     else:
-        suggestion = primary
+        base = res
 
-    # ΚΑΝΟΝΑΣ: Real Stat X > 40%
-    if pX > 0.40 and "X" not in suggestion:
-        suggestion = "X" if pX > p1 and pX > p2 else f"{suggestion}X"
+proposal = f"{base} {'(VALUE)' if current_edge >= 0.05 else '(LOW CONF)'}"
+color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
-    # ΚΑΝΟΝΑΣ: Positive Percentage Double -> X2 ή 1X
-    h_pos = (h_w + h_d) / h_tot
-    a_pos = (a_w + a_d) / a_tot
-    if a_pos >= 2 * h_pos and h_pos > 0: suggestion = "X2"
-    elif h_pos >= 2 * a_pos and a_pos > 0: suggestion = "1X"
+# Warnings
+warning = ""
+if total > 0 and (p1 + p2) < 0.40:
+    warning = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
+elif odd1 <= 1.55 and pX > 0.28:
+    warning = "⚠️ ΠΑΓΙΔΑ ΣΤΟ Χ: Το φαβορί δυσκολεύεται στα στατιστικά."
 
-    # ΚΑΝΟΝΑΣ: Real 1 & Real 2 > 45% ή Real X < 15% -> 1-2
-    if (p1 > 0.45 and p2 > 0.45) or pX < 0.15:
-        suggestion = "1-2"
+# ==============================
+# UI OUTPUT - ΑΘΙΚΤΟ
+# ==============================
+st.markdown(f"""
+<div class="result-card">
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.2.0" if total > 0 else "⚖️ BLIND MODE"}</div>
+    <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
+    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
+</div>
+""", unsafe_allow_html=True)
 
-    # --- UI DISPLAY ---
-    col_res1, col_res2 = st.columns([1, 2])
-    
-    with col_res1:
-        st.metric("Πρόταση", f"{suggestion} (VALUE)")
-        conf = int(max(p1, pX, p2) * 100)
-        st.write(f"**Confidence:** {conf}%")
-        
-        if o1 <= 1.50 and pX > 0.25:
-            st.warning("⚠️ TRAP στο Χ: Ο φαβορί θα δυσκολευτεί!")
+if warning: st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
 
-    with col_res2:
-        fig = go.Figure(data=[
-            go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[p1_b*100, pX_b*100, p2_b*100], marker_color='#b2bec3'),
-            go.Bar(name='Real Stats %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#00b894')
-        ])
-        fig.update_layout(barmode='group', height=300, margin=dict(l=20, r=20, t=20, b=20))
-        st.plotly_chart(fig, use_container_width=True)
+st.markdown("---")
+c1, c2 = st.columns(2)
+with c1:
+    st.subheader("🏠 Γηπεδούχος")
+    st.number_input("Νίκες", 0, 100, key="hw")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd")
+    st.number_input("Ήττες", 0, 100, key="hl")
+with c2:
+    st.subheader("🚀 Φιλοξενούμενος")
+    st.number_input("Νίκες", 0, 100, key="aw")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad")
+    st.number_input("Ήττες", 0, 100, key="al")
 
-if __name__ == "__main__":
-    run_analysis()
+fig = go.Figure()
+fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
+                     text=[f"<b>{pm1*100:.1f}%</b>", f"<b>{pmX*100:.1f}%</b>", f"<b>{pm2*100:.1f}%</b>"],
+                     textposition='inside', textfont=dict(color="white", size=14)))
+fig.add_trace(go.Bar(name='Real_Stats %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#2ecc71',
+                     text=[f"<b>{p1*100:.1f}%</b>", f"<b>{pX*100:.1f}%</b>", f"<b>{p2*100:.1f}%</b>"],
+                     textposition='inside', textfont=dict(color="white", size=14)))
+fig.update_layout(barmode='group', height=350, xaxis=dict(type='category'), margin=dict(l=20, r=20, t=20, b=20))
+st.plotly_chart(fig, use_container_width=True)
