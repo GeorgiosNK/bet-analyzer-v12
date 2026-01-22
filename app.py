@@ -5,10 +5,10 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.0.7", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.0.8", page_icon="⚽", layout="centered")
 
 # ==============================
-# JS INPUT FIX (Auto-select & Comma to Dot)
+# JS INPUT FIX (Auto-select & Comma to Dot) - ΑΘΙΚΤΟ
 # ==============================
 components.html("""
 <script>
@@ -30,7 +30,7 @@ setInterval(setupInputs, 3000);
 """, height=0)
 
 # ==============================
-# PROFESSIONAL CSS
+# PROFESSIONAL CSS - ΑΘΙΚΤΟ
 # ==============================
 st.markdown("""
 <style>
@@ -48,7 +48,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE INITIALIZATION
+# STATE INITIALIZATION - ΑΘΙΚΤΟ
 # ==============================
 if 'hw' not in st.session_state:
     st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
@@ -60,7 +60,7 @@ def reset_all():
     st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
 
 # ==============================
-# SIDEBAR INPUTS
+# SIDEBAR INPUTS - ΑΘΙΚΤΟ
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
@@ -78,7 +78,7 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE
+# CALCULATIONS ENGINE - ΑΘΙΚΤΟ
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -100,7 +100,7 @@ v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v17.0.7
+# FINAL LOGIC ENGINE v17.0.8 (ΔΙΟΡΘΩΜΕΝΗ ΚΑΛΥΨΗ)
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
@@ -108,42 +108,23 @@ best_v_key = max(vals, key=vals.get)
 current_edge = vals[best_v_key]
 conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
 
-# --- ΝΕΑ ΙΕΡΑΡΧΙΑ v17.0.7 ΜΕ ΣΗΜΕΡΙΝΕΣ ΑΛΛΑΓΕΣ ---
+# 1. Περίπτωση Ισοπαλίας (X)
+if pX >= 0.40 or abs(p1 - p2) < 0.12:
+    if h_pos > a_pos + 1: base = "X (1X)"
+    elif a_pos > h_pos + 1: base = "X (X2)"
+    else: base = "X"
 
-if pX < 0.15:
-    res = "1" if p1 > p2 else "2"
-    odd_check = odd1 if res == "1" else odd2
-    # Κανόνας Κάλυψης για μεγάλες αποδόσεις
-    base = f"{res} ({res}{'X' if res=='1' else '2'})" if odd_check > 2.80 else res
-    edge = v1 if p1 > p2 else v2
-
-elif pX >= 0.40:
-    base = "X"
-    edge = vX
-
-elif abs(p1 - p2) < 0.12:
-    base = "X"
-    edge = current_edge
-
-elif a_pos >= (h_pos * 2) and h_pos > 0:
-    base = "X2"
-    edge = v2 + vX
-
+# 2. Περίπτωση Σημείου (1 ή 2)
 else:
-    # Default Value point
     res = best_v_key
     odd_check = odd1 if res == "1" else odd2
-    # Κάλυψη αν είναι απαραίτητο (Κανόνας v17.0.7)
-    base = f"{res} ({res}{'X' if res=='1' else '2'})" if odd_check > 2.80 else res
-    edge = current_edge
+    # Κάλυψη αν η απόδοση είναι > 2.80 ή αν το X είναι σημαντικό (15-40%)
+    if odd_check > 2.80 or (0.15 <= pX < 0.40):
+        base = f"{res} ({res}{'X' if res=='1' else '2'})"
+    else:
+        base = res
 
-# Εφαρμογή Κάλυψης (Dominant Coverage) αν pX 15-40% και υπάρχει διαφορά
-if 0.15 <= pX < 0.40 and abs(p1 - p2) >= 0.12:
-    if "(1X)" not in base and "(X2)" not in base: # Μην το διπλογράφει
-        if h_pos > a_pos: base = f"{base} (1X)"
-        elif a_pos > h_pos: base = f"{base} (X2)"
-
-proposal = f"{base} {'(VALUE)' if edge >= 0.05 else '(LOW CONF)'}"
+proposal = f"{base} {'(VALUE)' if current_edge >= 0.05 else '(LOW CONF)'}"
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
 # Warnings
@@ -154,11 +135,11 @@ elif odd1 <= 1.55 and pX > 0.28:
     warning = "⚠️ ΠΑΓΙΔΑ ΣΤΟ Χ: Το φαβορί δυσκολεύεται στα στατιστικά."
 
 # ==============================
-# UI OUTPUT (v17.0.7)
+# UI OUTPUT - ΑΘΙΚΤΟ
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.7" if total > 0 else "⚖️ BLIND MODE"}</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.8" if total > 0 else "⚖️ BLIND MODE"}</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
