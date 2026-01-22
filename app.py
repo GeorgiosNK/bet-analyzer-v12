@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.0.9", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.1.0", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot) - ΑΘΙΚΤΟ
@@ -100,7 +100,7 @@ v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v17.0.9 (ΔΙΟΡΘΩΜΕΝΗ ΚΑΛΥΨΗ)
+# FINAL LOGIC ENGINE v17.1.0 (Προτεραιότητα στο Value)
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
@@ -108,19 +108,19 @@ best_v_key = max(vals, key=vals.get)
 current_edge = vals[best_v_key]
 conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
 
-# 1. Περίπτωση Ισοπαλίας (X)
-if pX >= 0.40 or abs(p1 - p2) < 0.12:
+# 1. Καθορισμός βασικού σημείου από το Value
+res = best_v_key
+odd_check = odd1 if res == "1" else oddX if res == "X" else odd2
+
+# 2. Έλεγχος αν το ματς είναι καθαρό X (Stats ή Derby)
+if pX >= 0.40 or (abs(p1 - p2) < 0.12 and res == "X"):
     if h_pos > a_pos + 1: base = "X (1X)"
     elif a_pos > h_pos + 1: base = "X (X2)"
     else: base = "X"
 
-# 2. Περίπτωση Σημείου (1 ή 2)
+# 3. Έλεγχος για σημεία 1 ή 2 και έξυπνη κάλυψη
 else:
-    res = best_v_key
-    odd_check = odd1 if res == "1" else odd2
-    # Έλεγχος για κάλυψη: Αν απόδοση > 2.80 Ή αν το X είναι σημαντικό (15-40%)
-    if odd_check > 2.80 or (0.15 <= pX < 0.40):
-        # Διόρθωση: Αν είναι 1 βάζει (1X), αν είναι 2 βάζει (X2)
+    if res != "X" and (odd_check > 2.80 or 0.15 <= pX < 0.40):
         cov = "1X" if res == "1" else "X2"
         base = f"{res} ({cov})"
     else:
@@ -141,7 +141,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.9" if total > 0 else "⚖️ BLIND MODE"}</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.1.0" if total > 0 else "⚖️ BLIND MODE"}</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
