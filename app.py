@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.0.4", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.0.6", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -89,12 +89,12 @@ inv = (1/odd1 + 1/oddX + 1/odd2)
 pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
 # Model Probabilities (Alpha Calibration)
-alpha = min(1.0, total / 20)
+alpha = min(1.0, total / 15) # Slightly faster calibration for new rules
 h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
 a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
 p1 = alpha * h_wr + (1-alpha) * pm1
 p2 = alpha * a_wr + (1-alpha) * pm2
-pX = max(0.05, 1 - p1 - p2)
+pX = max(0.01, 1 - p1 - p2)
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
@@ -103,7 +103,7 @@ v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v17.0.4 (With Safety Net)
+# FINAL LOGIC ENGINE v17.0.6 (New Hierarchy)
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
@@ -111,60 +111,58 @@ best_v_key = max(vals, key=vals.get)
 current_edge = vals[best_v_key]
 conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
 
-# --- ΙΕΡΑΡΧΙΑ ΜΕ ΕΞΥΠΝΗ ΚΑΛΥΨΗ ---
+# --- ΝΕΑ ΙΕΡΑΡΧΙΑ ΚΑΝΟΝΩΝ ---
 
-# 1. SAFETY NET ΓΙΑ ΜΕΓΑΛΑ ΑΟΥΤΣΑΪΝΤΕΡ (Το νέο φίλτρο)
-if best_v_key == '2' and odd2 > 3.50:
-    base = "X2 (VALUE TRAP)"
-    edge = v2
-elif best_v_key == '1' and odd1 > 3.50:
-    base = "1X (VALUE TRAP)"
-    edge = v1
+# ΚΑΝΟΝΑΣ 1: ΔΙΚΛΙΔΑ ΑΣΦΑΛΕΙΑΣ Χ < 15% (ΚΑΘΑΡΟ ΣΗΜΕΙΟ)
+if pX < 0.15:
+    base = "1" if p1 > p2 else "2"
+    edge = v1 if p1 > p2 else v2
+    draw_warning = False
 
-# 2. UPSET DETECTOR
-elif conf < 30 and st.session_state.aw > st.session_state.hw:
-    base = "X2 (UPSET ALERT)"
-    edge = v2
-
-# 3. ΚΑΘΑΡΟ ΦΑΒΟΡΙ (>= 55%)
-elif p1 >= 0.55:
-    base = "1 (1X)" if (a_pos >= h_pos * 0.7 and total > 5) else "1"
-    edge = v1
-elif p2 >= 0.55:
-    base = "2 (X2)" if (h_pos >= a_pos * 0.7 and total > 5) else "2"
-    edge = v2
-
-# 4. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X >= 40%)
+# ΚΑΝΟΝΑΣ 2: REAL STAT X >= 40%
 elif pX >= 0.40:
     edge = vX
     if h_pos > a_pos + 1: base = "X (1X)"
     elif a_pos > h_pos + 1: base = "X (X2)"
     else: base = "X"
+    draw_warning = True
 
-# 5. DEFAULT VALUE / ΝΤΕΡΜΠΙ
-else:
+# ΚΑΝΟΝΑΣ 3: ΝΤΕΡΜΠΙ (Διαφορά < 12% και X >= 15%)
+elif abs(p1 - p2) < 0.12:
     edge = current_edge
-    if abs(p1 - p2) < 0.12:
-        if h_pos > a_pos + 1: base = "X (1X)"
-        elif a_pos > h_pos + 1: base = "X (X2)"
-        else: base = "X"
-    else:
-        base = best_v_key
+    if h_pos > a_pos + 1: base = "X (1X)"
+    elif a_pos > h_pos + 1: base = "X (X2)"
+    else: base = "X"
+    draw_warning = True
+
+# ΚΑΝΟΝΑΣ 4: POSITIVE PERCENTAGE (X2 if a_pos >= h_pos * 2)
+elif a_pos >= (h_pos * 2) and h_pos > 0:
+    base = "X2"
+    edge = v2 + vX
+    draw_warning = True
+
+# DEFAULT: ΤΟ ΣΗΜΕΙΟ ΜΕ ΤΟ ΜΕΓΑΛΥΤΕΡΟ VALUE
+else:
+    base = best_v_key
+    edge = current_edge
+    draw_warning = (base == "X")
 
 proposal = f"{base} {'(VALUE)' if edge >= 0.05 else '(LOW CONF)'}"
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
-# Warnings
+# Warnings Logic
 warning = ""
-if odd1 <= 1.55 and pX > 0.28: warning = "⚠️ ΠΑΓΙΔΑ ΦΑΒΟΡΙ: Στατιστικά αυξημένη πιθανότητα Χ."
-if total > 0 and (p1 + p2) < 0.35: warning = "⚠️ HIGH RISK MATCH: Πολύ χαμηλά ποσοστά νίκης."
+if total > 0 and (p1 + p2) < 0.40:
+    warning = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
+elif odd1 <= 1.55 and pX > 0.28:
+    warning = "⚠️ ΠΑΓΙΔΑ ΣΤΟ Χ: Το φαβορί δυσκολεύεται στα στατιστικά."
 
 # ==============================
 # UI OUTPUT
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.4" if total > 0 else "⚖️ BLIND MODE"}</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.6" if total > 0 else "⚖️ BLIND MODE"}</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
@@ -176,14 +174,14 @@ st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Εντός_Νίκες", 0, 100, key="hw")
-    st.number_input("Εντός_Ισοπαλίες", 0, 100, key="hd")
-    st.number_input("Εντός_Ήττες", 0, 100, key="hl")
+    st.number_input("Νίκες", 0, 100, key="hw")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd")
+    st.number_input("Ήττες", 0, 100, key="hl")
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Εκτός_Νίκες", 0, 100, key="aw")
-    st.number_input("Εκτός_Ισοπαλίες", 0, 100, key="ad")
-    st.number_input("Εκτός_Ήττες", 0, 100, key="al")
+    st.number_input("Νίκες", 0, 100, key="aw")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad")
+    st.number_input("Ήττες", 0, 100, key="al")
 
 # Plotly Chart
 fig = go.Figure()
