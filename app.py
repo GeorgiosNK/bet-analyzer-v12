@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.0.8", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.0.9", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot) - ΑΘΙΚΤΟ
@@ -100,7 +100,7 @@ v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v17.0.8 (ΔΙΟΡΘΩΜΕΝΗ ΚΑΛΥΨΗ)
+# FINAL LOGIC ENGINE v17.0.9 (ΔΙΟΡΘΩΜΕΝΗ ΚΑΛΥΨΗ)
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
@@ -118,9 +118,11 @@ if pX >= 0.40 or abs(p1 - p2) < 0.12:
 else:
     res = best_v_key
     odd_check = odd1 if res == "1" else odd2
-    # Κάλυψη αν η απόδοση είναι > 2.80 ή αν το X είναι σημαντικό (15-40%)
+    # Έλεγχος για κάλυψη: Αν απόδοση > 2.80 Ή αν το X είναι σημαντικό (15-40%)
     if odd_check > 2.80 or (0.15 <= pX < 0.40):
-        base = f"{res} ({res}{'X' if res=='1' else '2'})"
+        # Διόρθωση: Αν είναι 1 βάζει (1X), αν είναι 2 βάζει (X2)
+        cov = "1X" if res == "1" else "X2"
+        base = f"{res} ({cov})"
     else:
         base = res
 
@@ -139,7 +141,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.8" if total > 0 else "⚖️ BLIND MODE"}</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.9" if total > 0 else "⚖️ BLIND MODE"}</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
