@@ -5,10 +5,10 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.2.0", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.2.1", page_icon="⚽", layout="centered")
 
 # ==============================
-# JS INPUT FIX (Auto-select & Comma to Dot) - ΑΘΙΚΤΟ
+# JS INPUT FIX (Auto-select & Comma to Dot)
 # ==============================
 components.html("""
 <script>
@@ -30,7 +30,7 @@ setInterval(setupInputs, 3000);
 """, height=0)
 
 # ==============================
-# PROFESSIONAL CSS - ΑΘΙΚΤΟ
+# PROFESSIONAL CSS
 # ==============================
 st.markdown("""
 <style>
@@ -48,7 +48,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE INITIALIZATION - ΑΘΙΚΤΟ
+# STATE INITIALIZATION
 # ==============================
 if 'hw' not in st.session_state:
     st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
@@ -60,7 +60,7 @@ def reset_all():
     st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
 
 # ==============================
-# SIDEBAR INPUTS - ΑΘΙΚΤΟ
+# SIDEBAR INPUTS
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
@@ -78,7 +78,7 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE - ΑΘΙΚΤΟ
+# CALCULATIONS ENGINE
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -90,53 +90,43 @@ pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 alpha = min(1.0, total / 15)
 h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
 a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
+p1_real_raw = st.session_state.hw / h_t if h_t > 0 else 0
+p2_real_raw = st.session_state.aw / a_t if a_t > 0 else 0
+pX_real_raw = (st.session_state.hd + st.session_state.ad) / total if total > 0 else 0
+
 p1 = alpha * h_wr + (1-alpha) * pm1
 p2 = alpha * a_wr + (1-alpha) * pm2
 pX = max(0.01, 1 - p1 - p2)
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
-v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
-vals = {'1': v1, 'X': vX, '2': v2}
-
 # ==============================
-# FINAL LOGIC ENGINE v17.2.0 (ΕΝΣΩΜΑΤΩΣΗ ΚΑΛΥΨΗΣ 2.80)
+# FINAL LOGIC ENGINE v17.2.1 (ΔΙΟΡΘΩΜΕΝΗ ΠΡΟΤΑΣΗ)
 # ==============================
-h_pos = st.session_state.hw + st.session_state.hd
-a_pos = st.session_state.aw + st.session_state.ad
-best_v_key = max(vals, key=vals.get)
-current_edge = vals[best_v_key]
-conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
-
-# 1. Καθορισμός βασικού σημείου από το Value
-res = best_v_key
+# Η πρόταση βασίζεται πλέον στο σημείο με το υψηλότερο Real_Stats %
+real_probs = {'1': p1, 'X': pX, '2': p2}
+res = max(real_probs, key=real_probs.get) # Πιο πιθανό σημείο
 odd_check = odd1 if res == "1" else oddX if res == "X" else odd2
+conf = int(real_probs[res] * 100)
 
-# 2. Έλεγχος αν το ματς είναι καθαρό X (Stats ή Derby)
-if pX >= 0.40 or (abs(p1 - p2) < 0.12 and res == "X"):
-    if h_pos > a_pos + 1: base = "X (1X)"
-    elif a_pos > h_pos + 1: base = "X (X2)"
-    else: base = "X"
+# Εφαρμογή Κάλυψης
+base = res
+if odd_check >= 2.80:
+    if res == "1" and (pX > 0.15 or st.session_state.ad > 0 or st.session_state.hd > 0): base = "1 (1X)"
+    elif res == "2" and (pX > 0.15 or st.session_state.hd > 0 or st.session_state.ad > 0): base = "2 (X2)"
+elif 0.18 <= pX < 0.40 and res != "X":
+    base = f"{res} ({'1X' if res == '1' else 'X2'})"
+elif pX >= 0.40:
+    base = "X"
 
-# 3. Έλεγχος για σημεία 1 ή 2 και ΝΕΑ ΛΟΓΙΚΗ ΚΑΛΥΨΗΣ (v17.2.0)
-else:
-    # Εφαρμογή κανόνα: Αν απόδοση >= 2.80, δώσε κάλυψη σε παρένθεση αν υπάρχει "σχισμή"
-    if odd_check >= 2.80:
-        if res == "1" and (pX > 0.10 or st.session_state.ad > 0 or st.session_state.hd > 0):
-            base = "1 (1X)"
-        elif res == "2" and (pX > 0.10 or st.session_state.hd > 0 or st.session_state.ad > 0):
-            base = "2 (X2)"
-        else:
-            base = res
-    # Διατήρηση παλιάς λογικής για αποδόσεις < 2.80 με στατιστική ανάγκη κάλυψης
-    elif 0.15 <= pX < 0.40:
-        cov = "1X" if res == "1" else "X2"
-        base = f"{res} ({cov})"
-    else:
-        base = res
+# Ειδικός κανόνας Positive Percentage
+h_pos = (st.session_state.hw + st.session_state.hd) / h_t if h_t > 0 else 0
+a_pos = (st.session_state.aw + st.session_state.ad) / a_t if a_t > 0 else 0
+if a_pos >= 2 * h_pos and h_pos > 0: base = "X2"
+elif h_pos >= 2 * a_pos and a_pos > 0: base = "1X"
 
-proposal = f"{base} {'(VALUE)' if current_edge >= 0.05 else '(LOW CONF)'}"
-color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
+proposal = f"{base} (VALUE)"
+color = "#2ecc71" if conf >= 65 else "#f1c40f" if conf >= 45 else "#e74c3c"
 
 # Warnings
 warning = ""
@@ -146,11 +136,11 @@ elif odd1 <= 1.55 and pX > 0.28:
     warning = "⚠️ ΠΑΓΙΔΑ ΣΤΟ Χ: Το φαβορί δυσκολεύεται στα στατιστικά."
 
 # ==============================
-# UI OUTPUT - ΑΘΙΚΤΟ
+# UI OUTPUT
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.2.0" if total > 0 else "⚖️ BLIND MODE"}</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.1</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
