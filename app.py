@@ -1,173 +1,110 @@
 import streamlit as st
-import plotly.graph_objects as go
-import streamlit.components.v1 as components
+import pandas as pd
 
-# ==============================
-# CONFIG
-# ==============================
-st.set_page_config(page_title="Bet Analyzer v17.1.0", page_icon="⚽", layout="centered")
+# Ρύθμιση Σελίδας
+st.set_page_config(page_title="Real Stats Model v17.2.0", layout="centered")
 
-# ==============================
-# JS INPUT FIX (Auto-select & Comma to Dot) - ΑΘΙΚΤΟ
-# ==============================
-components.html("""
-<script>
-const setupInputs = () => {
-    const inputs = window.parent.document.querySelectorAll('input');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() { this.select(); });
-        input.setAttribute('inputmode', 'decimal');
-        input.addEventListener('input', function() {
-            if(this.value.includes(',')) {
-                this.value = this.value.replace(',', '.');
-            }
-        });
-    });
-}
-setTimeout(setupInputs, 1000);
-setInterval(setupInputs, 3000);
-</script>
-""", height=0)
+def calculate_predictions(odds_1, odds_X, odds_2, home_stats, away_stats):
+    # 1. Πιθανότητες Bookie
+    total_implied = (1/odds_1) + (1/odds_X) + (1/odds_2)
+    p1_book = (1/odds_1) / total_implied
+    pX_book = (1/odds_X) / total_implied
+    p2_book = (1/odds_2) / total_implied
 
-# ==============================
-# PROFESSIONAL CSS - ΑΘΙΚΤΟ
-# ==============================
-st.markdown("""
-<style>
-.result-card {
-    background: #ffffff; padding: 1.5rem; border-radius: 15px;
-    border: 2px solid #1e3c72; text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-.warning-box {
-    background-color: #fff3cd; color: #856404; padding: 12px; 
-    border-radius: 8px; border: 1px solid #ffeeba; margin: 10px 0;
-    font-weight: bold; text-align: center;
-}
-</style>
-""", unsafe_allow_html=True)
+    # 2. Real Stats
+    h_total = sum(home_stats.values())
+    a_total = sum(away_stats.values())
+    
+    if h_total == 0 or a_total == 0:
+        return None, "⚠️ Statistics are very low, abstention is recommended."
 
-# ==============================
-# STATE INITIALIZATION - ΑΘΙΚΤΟ
-# ==============================
-if 'hw' not in st.session_state:
-    st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
-if 'o1' not in st.session_state:
-    st.session_state.update({'o1':"1.00",'ox':"1.00",'o2':"1.00"})
+    p1_real = home_stats['wins'] / h_total
+    pX_real = (home_stats['draws'] + away_stats['draws']) / (h_total + a_total)
+    p2_real = away_stats['wins'] / a_total
+    
+    # Alpha Calibration (0.5)
+    alpha = 0.5
+    p1_f = (p1_real * alpha) + (p1_book * (1 - alpha))
+    pX_f = (pX_real * alpha) + (pX_book * (1 - alpha))
+    p2_f = (p2_real * alpha) + (p2_book * (1 - alpha))
 
-def reset_all():
-    for k in ['hw','hd','hl','aw','ad','al']: st.session_state[k] = 0
-    st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
+    norm = p1_f + pX_f + p2_f
+    p1, pX, p2 = p1_f/norm, pX_f/norm, p2_f/norm
 
-# ==============================
-# SIDEBAR INPUTS - ΑΘΙΚΤΟ
-# ==============================
-with st.sidebar:
-    st.header("🏆 Control Panel")
-    st.button("🧹 Clear Stats & Odds", on_click=reset_all, use_container_width=True)
-    o1_i = st.text_input("Άσος (1)", key="o1")
-    ox_i = st.text_input("Ισοπαλία (X)", key="ox")
-    o2_i = st.text_input("Διπλό (2)", key="o2")
+    # 3. Decision Logic
+    if (p1 + p2) < 0.40:
+        return None, "⚠️ HIGH RISK MATCH: Statistics are very low."
 
-def sf(x):
-    try: 
-        v = float(str(x).replace(',','.'))
-        return v if v > 0 else 1.0
-    except: return 1.0
+    # Προσδιορισμός Κυρίαρχου
+    if p1 > pX and p1 > p2: primary = "1"
+    elif p2 > p1 and p2 > pX: primary = "2"
+    else: primary = "X"
 
-odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
-
-# ==============================
-# CALCULATIONS ENGINE - ΑΘΙΚΤΟ
-# ==============================
-h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
-a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
-total = h_t + a_t
-
-inv = (1/odd1 + 1/oddX + 1/odd2)
-pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
-
-alpha = min(1.0, total / 15)
-h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
-a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
-p1 = alpha * h_wr + (1-alpha) * pm1
-p2 = alpha * a_wr + (1-alpha) * pm2
-pX = max(0.01, 1 - p1 - p2)
-s = p1 + pX + p2
-p1, pX, p2 = p1/s, pX/s, p2/s
-
-v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
-vals = {'1': v1, 'X': vX, '2': v2}
-
-# ==============================
-# FINAL LOGIC ENGINE v17.1.0 (Προτεραιότητα στο Value)
-# ==============================
-h_pos = st.session_state.hw + st.session_state.hd
-a_pos = st.session_state.aw + st.session_state.ad
-best_v_key = max(vals, key=vals.get)
-current_edge = vals[best_v_key]
-conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
-
-# 1. Καθορισμός βασικού σημείου από το Value
-res = best_v_key
-odd_check = odd1 if res == "1" else oddX if res == "X" else odd2
-
-# 2. Έλεγχος αν το ματς είναι καθαρό X (Stats ή Derby)
-if pX >= 0.40 or (abs(p1 - p2) < 0.12 and res == "X"):
-    if h_pos > a_pos + 1: base = "X (1X)"
-    elif a_pos > h_pos + 1: base = "X (X2)"
-    else: base = "X"
-
-# 3. Έλεγχος για σημεία 1 ή 2 και έξυπνη κάλυψη
-else:
-    if res != "X" and (odd_check > 2.80 or 0.15 <= pX < 0.40):
-        cov = "1X" if res == "1" else "X2"
-        base = f"{res} ({cov})"
+    # ΕΦΑΡΜΟΓΗ ΚΑΝΟΝΑ 2.80 & ΚΑΛΥΨΗΣ 1 (1X)
+    current_odds = odds_1 if primary == "1" else (odds_2 if primary == "2" else odds_X)
+    
+    if current_odds >= 2.80:
+        if primary == "1" and (pX > 0.10 or away_stats['draws'] > 0):
+            suggestion = "1 (1X)"
+        elif primary == "2" and (pX > 0.10 or home_stats['draws'] > 0):
+            suggestion = "2 (X2)"
+        else:
+            suggestion = primary
     else:
-        base = res
+        suggestion = primary
 
-proposal = f"{base} {'(VALUE)' if current_edge >= 0.05 else '(LOW CONF)'}"
-color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
+    # Λοιποί Κανόνες (Real Stat X, κτλ)
+    if pX > 0.40 and "X" not in suggestion: suggestion = f"{suggestion}X"
+    
+    home_pos = (home_stats['wins'] + home_stats['draws']) / h_total
+    away_pos = (away_stats['wins'] + away_stats['draws']) / a_total
+    if away_pos >= 2 * home_pos and home_pos > 0: suggestion = "X2"
+    elif home_pos >= 2 * away_pos and away_pos > 0: suggestion = "1X"
+    
+    if p1 > 0.45 and p2 > 0.45: suggestion = "1-2"
+    if pX < 0.15: suggestion = "1-2"
 
-# Warnings
-warning = ""
-if total > 0 and (p1 + p2) < 0.40:
-    warning = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
-elif odd1 <= 1.55 and pX > 0.28:
-    warning = "⚠️ ΠΑΓΙΔΑ ΣΤΟ Χ: Το φαβορί δυσκολεύεται στα στατιστικά."
+    trap = ""
+    if odds_1 <= 1.50 and pX > 0.25:
+        trap = "⚠️ TRAP στο Χ: Ο φαβορί θα δυσκολευτεί!"
 
-# ==============================
-# UI OUTPUT - ΑΘΙΚΤΟ
-# ==============================
-st.markdown(f"""
-<div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.1.0" if total > 0 else "⚖️ BLIND MODE"}</div>
-    <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
-    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
-</div>
-""", unsafe_allow_html=True)
+    return {"p1": p1, "pX": pX, "p2": p2, "sug": suggestion, "conf": int(max(p1,pX,p2)*100), "trap": trap}, None
 
-if warning: st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
+# --- STREAMLIT UI ---
+st.title("⚽ Real Stats Predictor v17.2.0")
 
-st.markdown("---")
+col1, col2, col3 = st.columns(3)
+o1 = col1.number_input("Απόδοση 1", value=2.70)
+oX = col2.number_input("Απόδοση X", value=3.40)
+o2 = col3.number_input("Απόδοση 2", value=2.50)
+
+st.divider()
+
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Νίκες", 0, 100, key="hw")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd")
-    st.number_input("Ήττες", 0, 100, key="hl")
+    h_w = st.number_input("Νίκες Η", value=3, step=1)
+    h_d = st.number_input("Ισοπαλίες Η", value=0, step=1)
+    h_l = st.number_input("Ήττες Η", value=0, step=1)
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Νίκες", 0, 100, key="aw")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad")
-    st.number_input("Ήττες", 0, 100, key="al")
+    a_w = st.number_input("Νίκες Α", value=1, step=1)
+    a_d = st.number_input("Ισοπαλίες Α", value=1, step=1)
+    a_l = st.number_input("Ήττες Α", value=1, step=1)
 
-fig = go.Figure()
-fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
-                     text=[f"<b>{pm1*100:.1f}%</b>", f"<b>{pmX*100:.1f}%</b>", f"<b>{pm2*100:.1f}%</b>"],
-                     textposition='inside', textfont=dict(color="white", size=14)))
-fig.add_trace(go.Bar(name='Real_Stats %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#2ecc71',
-                     text=[f"<b>{p1*100:.1f}%</b>", f"<b>{pX*100:.1f}%</b>", f"<b>{p2*100:.1f}%</b>"],
-                     textposition='inside', textfont=dict(color="white", size=14)))
-fig.update_layout(barmode='group', height=350, xaxis=dict(type='category'), margin=dict(l=20, r=20, t=20, b=20))
-st.plotly_chart(fig, use_container_width=True)
+if st.button("Ανάλυση Αγώνα"):
+    res, err = calculate_predictions(o1, oX, o2, {'wins': h_w, 'draws': h_d, 'losses': h_l}, {'wins': a_w, 'draws': a_d, 'losses': a_l})
+    
+    if err:
+        st.error(err)
+    else:
+        st.metric("Πρόταση", f"{res['sug']} (VALUE)")
+        st.write(f"**Confidence:** {res['conf']}%")
+        if res['trap']: st.warning(res['trap'])
+        
+        # Γράφημα Πιθανοτήτων
+        chart_data = pd.DataFrame({
+            'Σημείο': ['1', 'X', '2'],
+            'Πιθανότητα %': [res['p1']*100, res['pX']*100, res['p2']*100]
+        })
+        st.bar_chart(chart_data.set_index('Σημείο'))
