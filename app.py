@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.0.1", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.0.4", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -103,7 +103,7 @@ v1, vX, v2 = p1 - pm1, pX - pmX, p2 - pm2
 vals = {'1': v1, 'X': vX, '2': v2}
 
 # ==============================
-# FINAL LOGIC ENGINE v17.0.3
+# FINAL LOGIC ENGINE v17.0.4 (With Safety Net)
 # ==============================
 h_pos = st.session_state.hw + st.session_state.hd
 a_pos = st.session_state.aw + st.session_state.ad
@@ -113,32 +113,35 @@ conf = int(min(100, (alpha * 55) + (max(0, current_edge) * 220)))
 
 # --- ΙΕΡΑΡΧΙΑ ΜΕ ΕΞΥΠΝΗ ΚΑΛΥΨΗ ---
 
-# 1. UPSET DETECTOR
-if conf < 30 and st.session_state.aw > st.session_state.hw:
+# 1. SAFETY NET ΓΙΑ ΜΕΓΑΛΑ ΑΟΥΤΣΑΪΝΤΕΡ (Το νέο φίλτρο)
+if best_v_key == '2' and odd2 > 3.50:
+    base = "X2 (VALUE TRAP)"
+    edge = v2
+elif best_v_key == '1' and odd1 > 3.50:
+    base = "1X (VALUE TRAP)"
+    edge = v1
+
+# 2. UPSET DETECTOR
+elif conf < 30 and st.session_state.aw > st.session_state.hw:
     base = "X2 (UPSET ALERT)"
     edge = v2
 
-# 2. ΚΑΘΑΡΟ ΦΑΒΟΡΙ (>= 55%)
+# 3. ΚΑΘΑΡΟ ΦΑΒΟΡΙ (>= 55%)
 elif p1 >= 0.55:
-    # Κάλυψη μόνο αν ο φιλοξενούμενος έχει τουλάχιστον 70% των θετικών αποτελεσμάτων του γηπεδούχου
     base = "1 (1X)" if (a_pos >= h_pos * 0.7 and total > 5) else "1"
     edge = v1
 elif p2 >= 0.55:
     base = "2 (X2)" if (h_pos >= a_pos * 0.7 and total > 5) else "2"
     edge = v2
 
-# 3. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X >= 40%)
+# 4. ΚΑΝΟΝΑΣ ΙΣΟΠΑΛΙΑΣ (X >= 40%)
 elif pX >= 0.40:
     edge = vX
-    # Εμφάνιση κάλυψης αν η διαφορά θετικών αποτελεσμάτων είναι πάνω από 1
-    if h_pos > a_pos + 1:
-        base = "X (1X)"
-    elif a_pos > h_pos + 1:
-        base = "X (X2)"
-    else:
-        base = "X"
+    if h_pos > a_pos + 1: base = "X (1X)"
+    elif a_pos > h_pos + 1: base = "X (X2)"
+    else: base = "X"
 
-# 4. DEFAULT VALUE / ΝΤΕΡΜΠΙ
+# 5. DEFAULT VALUE / ΝΤΕΡΜΠΙ
 else:
     edge = current_edge
     if abs(p1 - p2) < 0.12:
@@ -161,7 +164,7 @@ if total > 0 and (p1 + p2) < 0.35: warning = "⚠️ HIGH RISK MATCH: Πολύ �
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL" if total > 0 else "⚖️ BLIND MODE"}</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">{"📊 CALIBRATED MODEL v17.0.4" if total > 0 else "⚖️ BLIND MODE"}</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
