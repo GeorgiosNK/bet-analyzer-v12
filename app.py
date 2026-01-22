@@ -2,16 +2,12 @@ import streamlit as st
 import plotly.graph_objects as go
 
 # ==============================
-# CONFIG & CSS
+# CONFIG & CSS (Stable v17.0.6)
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.0.7", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.0.6", page_icon="⚽", layout="centered")
 
 st.markdown("""
 <style>
-/* Διόρθωση για αυτόματη επιλογή νούμερου στο κλικ */
-input {
-    select-all: true;
-}
 .result-card {
     background: #ffffff; padding: 1.5rem; border-radius: 15px;
     border: 2px solid #1e3c72; text-align: center;
@@ -26,7 +22,7 @@ input {
 """, unsafe_allow_html=True)
 
 # ==============================
-# SIDEBAR (Control Panel)
+# SIDEBAR (Control Panel v17.0.6)
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
@@ -60,7 +56,7 @@ with c2:
     al = st.number_input("Ήττες", 0, 100, key="al")
 
 # ==============================
-# ENGINE (v17.0.7)
+# ENGINE (Stable Logic)
 # ==============================
 h_t, a_t = (hw+hd+hl), (aw+ad+al)
 total = h_t + a_t
@@ -82,48 +78,29 @@ best_v_key = max(vals, key=vals.get)
 edge = vals[best_v_key]
 conf = int(min(100, (alpha * 55) + (max(0, edge) * 220)))
 
-# --- HIERARCHY & SMART COVERAGE ---
-if pX < 0.15:
-    res = "1" if p1 > p2 else "2"
-    o_val = odd1 if res == "1" else odd2
-    base = f"{res} ({res}{'X' if res=='1' else '2'})" if o_val > 2.80 else res
-elif pX >= 0.40:
+# Logic v17.0.6
+if pX >= 0.40:
     base = "X"
 elif abs(p1 - p2) < 0.12:
     base = "X"
 else:
-    res = best_v_key
-    o_val = odd1 if res == "1" else odd2
-    base = f"{res} ({res}{'X' if res=='1' else '2'})" if o_val > 2.80 else res
-
-# Εμφάνιση κάλυψης (1X/X2) μόνο αν είναι απαραίτητο (v17.0.7 rule)
-if 0.15 <= pX < 0.40 and abs(p1 - p2) >= 0.12:
-    if (hw + hd) > (aw + ad):
-        if "(1X)" not in base: base = f"{base} (1X)"
-    else:
-        if "(X2)" not in base: base = f"{base} (X2)"
+    base = best_v_key
 
 proposal = f"{base} (VALUE)"
 color = "#2ecc71" if conf >= 75 else "#f1c40f" if conf >= 50 else "#e74c3c"
 
 # ==============================
-# UI OUTPUT
+# UI OUTPUT (v17.0.6)
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">REAL STATS ANALYSIS v17.0.7</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">REAL STATS ANALYSIS v17.0.6</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
 """, unsafe_allow_html=True)
 
-# Warnings
-if total > 0 and (p1 + p2) < 0.40:
-    st.markdown('<div class="warning-box">⚠️ HIGH RISK MATCH: Statistics are very low.</div>', unsafe_allow_html=True)
-elif odd1 <= 1.55 and pX > 0.28:
-    st.markdown('<div class="warning-box">⚠️ ΠΑΓΙΔΑ ΣΤΟ Χ: Το φαβορί δυσκολεύεται στα στατιστικά.</div>', unsafe_allow_html=True)
-
-# Chart
+# Γράφημα
 fig = go.Figure()
 fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72'))
 fig.add_trace(go.Bar(name='Real_Stats %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#2ecc71'))
