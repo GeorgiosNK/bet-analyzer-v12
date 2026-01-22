@@ -140,7 +140,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.1</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Bet Analyzer v17.2.1</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
@@ -152,14 +152,14 @@ st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Νίκες", 0, 100, key="hw")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd")
-    st.number_input("Ήττες", 0, 100, key="hl")
+    st.number_input("Εντός_Νίκες", 0, 100, key="hw")
+    st.number_input("Εντός_Ισοπαλίες", 0, 100, key="hd")
+    st.number_input("Εντός_Ήττες", 0, 100, key="hl")
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Νίκες", 0, 100, key="aw")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad")
-    st.number_input("Ήττες", 0, 100, key="al")
+    st.number_input("Εκτός_Νίκες", 0, 100, key="aw")
+    st.number_input("Εκτός_Ισοπαλίες", 0, 100, key="ad")
+    st.number_input("Εκτός_Ήττες", 0, 100, key="al")
 
 fig = go.Figure()
 fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
