@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.2.1", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.2.2", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -78,7 +78,7 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE
+# CALCULATIONS ENGINE v17.2.2 (LOSS PENALTY)
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -88,28 +88,28 @@ inv = (1/odd1 + 1/oddX + 1/odd2)
 pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
 alpha = min(1.0, total / 15)
-h_wr = st.session_state.hw / h_t if h_t > 0 else pm1
-a_wr = st.session_state.aw / a_t if a_t > 0 else pm2
-p1_real_raw = st.session_state.hw / h_t if h_t > 0 else 0
-p2_real_raw = st.session_state.aw / a_t if a_t > 0 else 0
-pX_real_raw = (st.session_state.hd + st.session_state.ad) / total if total > 0 else 0
+
+# Νέος υπολογισμός: Οι ήττες αφαιρούν "πόντους" από την πιθανότητα νίκης (Penalty)
+h_wr = (st.session_state.hw - (st.session_state.hl * 0.5)) / h_t if h_t > 0 else pm1
+a_wr = (st.session_state.aw - (st.session_state.al * 0.5)) / a_t if a_t > 0 else pm2
 
 p1 = alpha * h_wr + (1-alpha) * pm1
 p2 = alpha * a_wr + (1-alpha) * pm2
+
+# Διασφάλιση ότι δεν θα έχουμε αρνητικά νούμερα λόγω ηττών
+p1, p2 = max(0.05, p1), max(0.05, p2)
 pX = max(0.01, 1 - p1 - p2)
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE v17.2.1 (ΔΙΟΡΘΩΜΕΝΗ ΠΡΟΤΑΣΗ)
+# FINAL LOGIC ENGINE v17.2.2
 # ==============================
-# Η πρόταση βασίζεται πλέον στο σημείο με το υψηλότερο Real_Stats %
 real_probs = {'1': p1, 'X': pX, '2': p2}
-res = max(real_probs, key=real_probs.get) # Πιο πιθανό σημείο
+res = max(real_probs, key=real_probs.get)
 odd_check = odd1 if res == "1" else oddX if res == "X" else odd2
 conf = int(real_probs[res] * 100)
 
-# Εφαρμογή Κάλυψης
 base = res
 if odd_check >= 2.80:
     if res == "1" and (pX > 0.15 or st.session_state.ad > 0 or st.session_state.hd > 0): base = "1 (1X)"
@@ -119,7 +119,6 @@ elif 0.18 <= pX < 0.40 and res != "X":
 elif pX >= 0.40:
     base = "X"
 
-# Ειδικός κανόνας Positive Percentage
 h_pos = (st.session_state.hw + st.session_state.hd) / h_t if h_t > 0 else 0
 a_pos = (st.session_state.aw + st.session_state.ad) / a_t if a_t > 0 else 0
 if a_pos >= 2 * h_pos and h_pos > 0: base = "X2"
@@ -128,7 +127,6 @@ elif h_pos >= 2 * a_pos and a_pos > 0: base = "1X"
 proposal = f"{base} (VALUE)"
 color = "#2ecc71" if conf >= 65 else "#f1c40f" if conf >= 45 else "#e74c3c"
 
-# Warnings
 warning = ""
 if total > 0 and (p1 + p2) < 0.40:
     warning = "⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended."
@@ -140,7 +138,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Bet Analyzer v17.2.1</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.2</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
@@ -152,14 +150,14 @@ st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Εντός_Νίκες", 0, 100, key="hw")
-    st.number_input("Εντός_Ισοπαλίες", 0, 100, key="hd")
-    st.number_input("Εντός_Ήττες", 0, 100, key="hl")
+    st.number_input("Νίκες", 0, 100, key="hw")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd")
+    st.number_input("Ήττες", 0, 100, key="hl")
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Εκτός_Νίκες", 0, 100, key="aw")
-    st.number_input("Εκτός_Ισοπαλίες", 0, 100, key="ad")
-    st.number_input("Εκτός_Ήττες", 0, 100, key="al")
+    st.number_input("Νίκες", 0, 100, key="aw")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad")
+    st.number_input("Ήττες", 0, 100, key="al")
 
 fig = go.Figure()
 fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
