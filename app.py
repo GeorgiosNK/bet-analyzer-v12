@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.2.2", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.2.3", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -78,7 +78,7 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE v17.2.2 (LOSS PENALTY)
+# CALCULATIONS ENGINE v17.2.3 (DRAW DE-BLOATING)
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -89,21 +89,33 @@ pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
 alpha = min(1.0, total / 15)
 
-# Νέος υπολογισμός: Οι ήττες αφαιρούν "πόντους" από την πιθανότητα νίκης (Penalty)
-h_wr = (st.session_state.hw - (st.session_state.hl * 0.5)) / h_t if h_t > 0 else pm1
-a_wr = (st.session_state.aw - (st.session_state.al * 0.5)) / a_t if a_t > 0 else pm2
+# Μειωμένο Penalty Ήττας (0.3) για αποφυγή τεχνητού φουσκώματος του Χ
+h_wr = (st.session_state.hw - (st.session_state.hl * 0.3)) / h_t if h_t > 0 else pm1
+a_wr = (st.session_state.aw - (st.session_state.al * 0.3)) / a_t if a_t > 0 else pm2
 
 p1 = alpha * h_wr + (1-alpha) * pm1
 p2 = alpha * a_wr + (1-alpha) * pm2
 
-# Διασφάλιση ότι δεν θα έχουμε αρνητικά νούμερα λόγω ηττών
-p1, p2 = max(0.05, p1), max(0.05, p2)
+# Διασφάλιση ελάχιστης βάσης 10% για να μην "αδειάζουν" τα σημεία
+p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
+
+# Κανόνας Draw Normalization: Αν το Χ > 50% χωρίς υψηλό ιστορικό ισοπαλιών
+real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
+real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
+avg_draw = (real_h_draw + real_a_draw) / 2
+
+if pX > 0.50 and avg_draw < 0.40:
+    diff = pX - 0.50
+    p1 += diff * 0.5
+    p2 += diff * 0.5
+    pX = 0.50
+
 s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE v17.2.2
+# FINAL LOGIC ENGINE
 # ==============================
 real_probs = {'1': p1, 'X': pX, '2': p2}
 res = max(real_probs, key=real_probs.get)
@@ -138,7 +150,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.2</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.3</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
