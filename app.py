@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.2.5", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.2.6", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -78,7 +78,7 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE v17.2.5
+# CALCULATIONS ENGINE v17.2.6
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -114,7 +114,7 @@ s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE v17.2.5
+# FINAL LOGIC ENGINE v17.2.6 (UPDATED)
 # ==============================
 real_probs = {'1': p1, 'X': pX, '2': p2}
 res = max(real_probs, key=real_probs.get)
@@ -123,25 +123,28 @@ conf = int(real_probs[res] * 100)
 
 base = res
 
-# 1. Βασική κάλυψη βάσει αποδόσεων και Χ
-if odd_check >= 2.80:
-    if res == "1" and (pX > 0.15 or st.session_state.ad > 0 or st.session_state.hd > 0): base = "1 (1X)"
-    elif res == "2" and (pX > 0.15 or st.session_state.hd > 0 or st.session_state.ad > 0): base = "2 (X2)"
-elif 0.18 <= pX < 0.40 and res != "X":
+# Κανόνας Κάλυψης: Μόνο αν το Χ είναι >= 20%
+has_cover_reason = pX >= 0.20
+
+if res == "1" and odd_check >= 2.00 and has_cover_reason:
+    base = "1X"
+elif res == "2" and odd_check >= 2.00 and has_cover_reason:
+    base = "X2"
+elif 0.20 <= pX < 0.40 and res != "X":
     base = f"{res} ({'1X' if res == '1' else 'X2'})"
 elif pX >= 0.40:
     base = "X"
 
-# 2. Κανόνας Διπλάσιας Θετικής Πιθανότητας (X2 / 1X)
+# Κανόνας Διπλάσιας Θετικής Πιθανότητας (X2 / 1X)
 h_pos = (st.session_state.hw + st.session_state.hd) / h_t if h_t > 0 else 0
 a_pos = (st.session_state.aw + st.session_state.ad) / a_t if a_t > 0 else 0
-if a_pos >= 2 * h_pos and h_pos > 0: base = "X2"
-elif h_pos >= 2 * a_pos and a_pos > 0: base = "1X"
+if a_pos >= 2 * h_pos and h_pos > 0 and has_cover_reason: base = "X2"
+elif h_pos >= 2 * a_pos and a_pos > 0 and has_cover_reason: base = "1X"
 
-# 3. ΤΕΛΙΚΗ ΕΠΙΒΟΛΗ (Override): Καθαρό σημείο σε αήττητα κυρίαρχα φαβορί
-if res == "1" and p1 > 0.70 and st.session_state.hl == 0:
+# ΤΕΛΙΚΗ ΕΠΙΒΟΛΗ (Override): Καθαρό σημείο σε αήττητα κυρίαρχα φαβορί ή χαμηλό Χ
+if res == "1" and (p1 > 0.70 or pX < 0.20):
     base = "1"
-elif res == "2" and p2 > 0.70 and st.session_state.al == 0:
+elif res == "2" and (p2 > 0.70 or pX < 0.20):
     base = "2"
 
 proposal = f"{base} (VALUE)"
@@ -158,7 +161,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.5</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.6</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
