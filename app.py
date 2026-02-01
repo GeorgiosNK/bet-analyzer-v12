@@ -172,7 +172,7 @@ if warning: st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allo
 st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
-    st.subheader("🏠 Γηπεδούχος_Latest_Home_Results")
+    st.subheader("🏠 Γηπεδούχος")
     st.number_input("Νίκες", 0, 100, key="hw")
     st.number_input("Ισοπαλίες", 0, 100, key="hd")
     st.number_input("Ήττες", 0, 100, key="hl")
