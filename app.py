@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Bet Analyzer v17.2.3", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Bet Analyzer v17.2.4", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -78,7 +78,7 @@ def sf(x):
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE v17.2.3 (DRAW DE-BLOATING)
+# CALCULATIONS ENGINE v17.2.4
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -89,18 +89,15 @@ pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
 
 alpha = min(1.0, total / 15)
 
-# Μειωμένο Penalty Ήττας (0.3) για αποφυγή τεχνητού φουσκώματος του Χ
 h_wr = (st.session_state.hw - (st.session_state.hl * 0.3)) / h_t if h_t > 0 else pm1
 a_wr = (st.session_state.aw - (st.session_state.al * 0.3)) / a_t if a_t > 0 else pm2
 
 p1 = alpha * h_wr + (1-alpha) * pm1
 p2 = alpha * a_wr + (1-alpha) * pm2
 
-# Διασφάλιση ελάχιστης βάσης 10% για να μην "αδειάζουν" τα σημεία
 p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
-# Κανόνας Draw Normalization: Αν το Χ > 50% χωρίς υψηλό ιστορικό ισοπαλιών
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
 avg_draw = (real_h_draw + real_a_draw) / 2
@@ -115,7 +112,7 @@ s = p1 + pX + p2
 p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE
+# FINAL LOGIC ENGINE (CLEAN 1/2 FIX)
 # ==============================
 real_probs = {'1': p1, 'X': pX, '2': p2}
 res = max(real_probs, key=real_probs.get)
@@ -123,7 +120,16 @@ odd_check = odd1 if res == "1" else oddX if res == "X" else odd2
 conf = int(real_probs[res] * 100)
 
 base = res
-if odd_check >= 2.80:
+
+# ΝΕΟΣ ΚΑΝΟΝΑΣ: Καθαρό σημείο σε κυρίαρχα αήττητα φαβορί
+is_clean_1 = res == "1" and p1 > 0.75 and st.session_state.hl == 0
+is_clean_2 = res == "2" and p2 > 0.75 and st.session_state.al == 0
+
+if is_clean_1:
+    base = "1"
+elif is_clean_2:
+    base = "2"
+elif odd_check >= 2.80:
     if res == "1" and (pX > 0.15 or st.session_state.ad > 0 or st.session_state.hd > 0): base = "1 (1X)"
     elif res == "2" and (pX > 0.15 or st.session_state.hd > 0 or st.session_state.ad > 0): base = "2 (X2)"
 elif 0.18 <= pX < 0.40 and res != "X":
@@ -131,10 +137,11 @@ elif 0.18 <= pX < 0.40 and res != "X":
 elif pX >= 0.40:
     base = "X"
 
+# Κανόνας Διπλάσιας Θετικής Πιθανότητας (X2 / 1X)
 h_pos = (st.session_state.hw + st.session_state.hd) / h_t if h_t > 0 else 0
 a_pos = (st.session_state.aw + st.session_state.ad) / a_t if a_t > 0 else 0
-if a_pos >= 2 * h_pos and h_pos > 0: base = "X2"
-elif h_pos >= 2 * a_pos and a_pos > 0: base = "1X"
+if a_pos >= 2 * h_pos and h_pos > 0 and not is_clean_1: base = "X2"
+elif h_pos >= 2 * a_pos and a_pos > 0 and not is_clean_2: base = "1X"
 
 proposal = f"{base} (VALUE)"
 color = "#2ecc71" if conf >= 65 else "#f1c40f" if conf >= 45 else "#e74c3c"
@@ -150,7 +157,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.3</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 CALIBRATED MODEL v17.2.4</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
