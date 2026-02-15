@@ -54,10 +54,102 @@ if 'hw' not in st.session_state:
     st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
 if 'o1' not in st.session_state:
     st.session_state.update({'o1':"1.00",'ox':"1.00",'o2':"1.00"})
+if 'current_proposal' not in st.session_state:
+    st.session_state.current_proposal = ""
 
 def reset_all():
     for k in ['hw','hd','hl','aw','ad','al']: st.session_state[k] = 0
     st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
+    st.session_state.current_proposal = ""
+
+# ==============================
+# FUNCTIONS FOR EXPLANATIONS
+# ==============================
+def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
+    """
+    Δημιουργεί αναλυτική εξήγηση για την πρόταση
+    """
+    explanation_parts = []
+    
+    # 1. Ανάλυση στατιστικών
+    if h_t > 0 and a_t > 0:
+        h_pos = (st_session.hw + st_session.hd) / h_t
+        a_pos = (st_session.aw + st_session.ad) / a_t
+        
+        if h_pos > 0.7:
+            explanation_parts.append("🏠 **Ισχυρή εντός έδρας ομάδα**: Η γηπεδούχος έχει πολύ καλή φόρμα")
+        elif a_pos > 0.7:
+            explanation_parts.append("🚀 **Ισχυρή εκτός έδρας ομάδα**: Η φιλοξενούμενη έχει πολύ καλή φόρμα")
+        
+        if h_t > 0 and st_session.hw > st_session.hl * 2:
+            explanation_parts.append("⚽ **Επιθετικό πλεονέκτημα**: Η γηπεδούχος σκοράρει συχνά")
+        
+        if a_t > 0 and st_session.aw > st_session.al * 2:
+            explanation_parts.append("⚽ **Επιθετικό πλεονέκτημα**: Η φιλοξενούμενη σκοράρει συχνά")
+    
+    # 2. Ανάλυση αποδόσεων
+    implied_home = 1/odd1 * 100
+    implied_draw = 1/oddX * 100
+    implied_away = 1/odd2 * 100
+    
+    if implied_home < 40 and p1 > 0.5:
+        explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd1:.2f} είναι υψηλή για {p1*100:.0f}% πιθανότητα")
+    elif implied_away < 40 and p2 > 0.5:
+        explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd2:.2f} είναι υψηλή για {p2*100:.0f}% πιθανότητα")
+    
+    # 3. Ανάλυση Χ (ισοπαλίας)
+    if pX > 0.35:
+        explanation_parts.append(f"🤝 **Υψηλή πιθανότητα ισοπαλίας**: {pX*100:.0f}% - Προσοχή στο Χ")
+    elif pX < 0.20 and pX < (implied_draw/100):
+        explanation_parts.append("⚡ **Χαμηλό Χ**: Οι ομάδες δεν ισοπαλούν συχνά")
+    
+    # 4. Εξήγηση τελικής πρότασης
+    proposal = st_session.get('current_proposal', '')
+    
+    if "1X" in proposal:
+        explanation_parts.append("🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία 1X λόγω στατιστικών")
+    elif "X2" in proposal:
+        explanation_parts.append("🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία X2 λόγω στατιστικών")
+    
+    if proposal == "1 (VALUE)":
+        explanation_parts.append("✅ **Καθαρό φαβορί**: Η γηπεδούχος υπερέχει στατιστικά")
+    elif proposal == "2 (VALUE)":
+        explanation_parts.append("✅ **Καθαρό φαβορί**: Η φιλοξενούμενη υπερέχει στατιστικά")
+    elif proposal == "X (VALUE)":
+        explanation_parts.append("⚠️ **Ισοπαλία**: Οι ομάδες είναι πολύ κοντά ή υπάρχει αμυντική τακτική")
+    
+    return explanation_parts
+
+def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
+    """
+    Υπολογίζει βασικές μετρικές για σύγκριση
+    """
+    implied_home = 1/odd1 * 100
+    implied_draw = 1/oddX * 100
+    implied_away = 1/odd2 * 100
+    
+    metrics = {
+        'home_edge': p1 * 100 - implied_home,
+        'draw_edge': pX * 100 - implied_draw,
+        'away_edge': p2 * 100 - implied_away,
+    }
+    
+    # Ποια απόδοση έχει value
+    metrics['best_value'] = max(metrics, key=metrics.get)
+    metrics['value_amount'] = max(metrics.values())
+    
+    return metrics
+
+def get_risk_advice(p1, pX, p2, conf):
+    """
+    Επιστρέφει συμβουλές διαχείρισης ρίσκου
+    """
+    if conf >= 70:
+        return "🟢 **Υψηλή εμπιστοσύνη**: Κατάλληλο για κανονικό ποντάρισμα"
+    elif conf >= 50:
+        return "🟡 **Μέτρια εμπιστοσύνη**: Μείωση ποντάρισματος ή διπλή ευκαιρία"
+    else:
+        return "🔴 **Χαμηλή εμπιστοσύνη**: Μικρό ποντάρισμα ή αποφυγή"
 
 # ==============================
 # SIDEBAR INPUTS
@@ -151,6 +243,7 @@ elif res == "2" and (p2 > 0.70 or pX < 0.20):
     base = "2"
 
 proposal = f"{base} (VALUE)"
+st.session_state.current_proposal = proposal
 color = "#2ecc71" if conf >= 65 else "#f1c40f" if conf >= 45 else "#e74c3c"
 
 warning = ""
@@ -173,19 +266,116 @@ st.markdown(f"""
 if warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
 
+# ==============================
+# ANALYTICAL EXPLANATIONS
+# ==============================
+with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
+    
+    # Υπολογισμός εξηγήσεων και μετρικών
+    explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
+    metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
+    
+    # Γράφημα σύγκρισης
+    fig_comparison = go.Figure()
+    fig_comparison.add_trace(go.Bar(
+        name='Μοντέλο',
+        x=['1', 'X', '2'],
+        y=[p1*100, pX*100, p2*100],
+        marker_color='#2ecc71',
+        text=[f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"],
+        textposition='inside',
+        textfont=dict(color="white", size=12)
+    ))
+    fig_comparison.add_trace(go.Bar(
+        name='Bookie',
+        x=['1', 'X', '2'],
+        y=[1/odd1*100, 1/oddX*100, 1/odd2*100],
+        marker_color='#1e3c72',
+        text=[f"{1/odd1*100:.1f}%", f"{1/oddX*100:.1f}%", f"{1/odd2*100:.1f}%"],
+        textposition='inside',
+        textfont=dict(color="white", size=12)
+    ))
+    fig_comparison.update_layout(
+        title="📊 Σύγκριση Πιθανοτήτων: Μοντέλο vs Bookie",
+        barmode='group',
+        height=350,
+        yaxis_title="Πιθανότητα %",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    st.plotly_chart(fig_comparison, use_container_width=True)
+    
+    # Explanations σε δύο στήλες
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📋 Παράγοντες Πρόβλεψης")
+        if explanations:
+            for exp in explanations[:3]:  # First 3 factors
+                st.markdown(f"- {exp}")
+        else:
+            st.markdown("- Ανεπαρκή στατιστικά για αναλυτική εξήγηση")
+    
+    with col2:
+        st.markdown("### ⚖️ Ανάλυση Value")
+        if len(explanations) > 3:
+            for exp in explanations[3:]:  # Remaining factors
+                st.markdown(f"- {exp}")
+        else:
+            # Value metrics
+            value_map = {
+                'home_edge': 'Άσος (1)',
+                'draw_edge': 'Ισοπαλία (Χ)',
+                'away_edge': 'Διπλό (2)'
+            }
+            
+            if metrics['value_amount'] > 5:
+                st.markdown(f"✅ **Value detected**: +{metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
+            elif metrics['value_amount'] < -5:
+                st.markdown(f"❌ **Overpriced**: {metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
+            else:
+                st.markdown(f"⚖️ **Fair value**: {metrics['value_amount']:.1f}% διαφορά")
+    
+    # Πίνακας σύγκρισης
+    st.markdown("---")
+    st.markdown("### 📈 Αναλυτική Σύγκριση Πιθανοτήτων")
+    
+    comp_data = {
+        'Σημείο': ['1', 'X', '2'],
+        'Απόδοση': [f"{odd1:.2f}", f"{oddX:.2f}", f"{odd2:.2f}"],
+        'Μοντέλο': [f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"],
+        'Bookie': [f"{1/odd1*100:.1f}%", f"{1/oddX*100:.1f}%", f"{1/odd2*100:.1f}%"],
+        'Διαφορά': [f"{p1*100 - 1/odd1*100:+.1f}%", 
+                   f"{pX*100 - 1/oddX*100:+.1f}%", 
+                   f"{p2*100 - 1/odd2*100:+.1f}%"]
+    }
+    
+    st.dataframe(comp_data, use_container_width=True, hide_index=True)
+    
+    # Risk advice
+    st.markdown("---")
+    st.markdown(f"### 💡 Συμβουλή Διαχείρισης Ρίσκου")
+    st.info(get_risk_advice(p1, pX, p2, conf))
+
 st.markdown("---")
+
+# ==============================
+# INPUT FIELDS
+# ==============================
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Νίκες", 0, 100, key="hw")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd")
-    st.number_input("Ήττες", 0, 100, key="hl")
+    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες στα τελευταία 5 εντός έδρας παιχνίδια")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες στα τελευταία 5 εντός έδρας παιχνίδια")
+    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες στα τελευταία 5 εντός έδρας παιχνίδια")
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Νίκες", 0, 100, key="aw")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad")
-    st.number_input("Ήττες", 0, 100, key="al")
+    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες στα τελευταία 5 εκτός έδρας παιχνίδια")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες στα τελευταία 5 εκτός έδρας παιχνίδια")
+    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες στα τελευταία 5 εκτός έδρας παιχνίδια")
 
+# ==============================
+# MAIN BAR CHART
+# ==============================
 fig = go.Figure()
 fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm2*100], marker_color='#1e3c72',
                      text=[f"<b>{pm1*100:.1f}%</b>", f"<b>{pmX*100:.1f}%</b>", f"<b>{pm2*100:.1f}%</b>"],
@@ -193,5 +383,11 @@ fig.add_trace(go.Bar(name='Bookie %', x=['1', 'X', '2'], y=[pm1*100, pmX*100, pm
 fig.add_trace(go.Bar(name='Real_Stats %', x=['1', 'X', '2'], y=[p1*100, pX*100, p2*100], marker_color='#2ecc71',
                      text=[f"<b>{p1*100:.1f}%</b>", f"<b>{pX*100:.1f}%</b>", f"<b>{p2*100:.1f}%</b>"],
                      textposition='inside', textfont=dict(color="white", size=14)))
-fig.update_layout(barmode='group', height=350, xaxis=dict(type='category'), margin=dict(l=20, r=20, t=20, b=20))
+fig.update_layout(barmode='group', height=350, xaxis=dict(type='category'), 
+                  margin=dict(l=20, r=20, t=20, b=20),
+                  legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
 st.plotly_chart(fig, use_container_width=True)
+
+# Footer
+st.markdown("---")
+st.caption("BetAnalyzer v17.2.6 - Η ανάλυση βασίζεται στα στατιστικά των ομάδων και τις αποδόσεις της αγοράς")
