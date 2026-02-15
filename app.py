@@ -87,19 +87,19 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
         if a_t > 0 and st_session.aw > st_session.al * 2:
             explanation_parts.append("⚽ **Επιθετικό πλεονέκτημα**: Η φιλοξενούμενη σκοράρει συχνά")
     
-    # 2. Ανάλυση αποδόσεων - ΜΕ ΕΛΕΓΧΟ ΓΙΑ ΜΗΔΕΝ
-    if odd1 > 1.0:
+    # 2. Ανάλυση αποδόσεων
+    if odd1 > 1.01:
         implied_home = 1/odd1 * 100
         if implied_home < 40 and p1 > 0.5:
             explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd1:.2f} είναι υψηλή για {p1*100:.0f}% πιθανότητα")
     
-    if odd2 > 1.0:
+    if odd2 > 1.01:
         implied_away = 1/odd2 * 100
         if implied_away < 40 and p2 > 0.5:
             explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd2:.2f} είναι υψηλή για {p2*100:.0f}% πιθανότητα")
     
     # 3. Ανάλυση Χ (ισοπαλίας)
-    if oddX > 1.0:
+    if oddX > 1.01:
         implied_draw = 1/oddX * 100
         if pX > 0.35:
             explanation_parts.append(f"🤝 **Υψηλή πιθανότητα ισοπαλίας**: {pX*100:.0f}% - Προσοχή στο Χ")
@@ -125,30 +125,50 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
 
 def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
     """
-    Υπολογίζει βασικές μετρικές για σύγκριση - ΜΕ ΑΣΦΑΛΗ ΥΠΟΛΟΓΙΣΜΟ
+    Υπολογίζει βασικές μετρικές για σύγκριση - ΠΛΗΡΩΣ ΔΙΟΡΘΩΜΕΝΟ
     """
-    # Ασφαλής υπολογισμός implied probabilities
-    implied_home = (1/odd1 * 100) if odd1 > 1.0 else 33.33
-    implied_draw = (1/oddX * 100) if oddX > 1.0 else 33.33
-    implied_away = (1/odd2 * 100) if odd2 > 1.0 else 33.33
+    # Εξασφαλίζουμε ότι όλες οι τιμές είναι έγκυρες
+    p1 = max(0.01, min(0.99, p1)) if isinstance(p1, (int, float)) else 0.33
+    pX = max(0.01, min(0.99, pX)) if isinstance(pX, (int, float)) else 0.33
+    p2 = max(0.01, min(0.99, p2)) if isinstance(p2, (int, float)) else 0.33
     
-    # Κανονικοποίηση αν χρειάζεται
+    odd1 = max(1.01, odd1) if isinstance(odd1, (int, float)) and odd1 > 0 else 2.0
+    oddX = max(1.01, oddX) if isinstance(oddX, (int, float)) and oddX > 0 else 2.0
+    odd2 = max(1.01, odd2) if isinstance(odd2, (int, float)) and odd2 > 0 else 2.0
+    
+    # Ασφαλής υπολογισμός implied probabilities
+    implied_home = (1/odd1 * 100)
+    implied_draw = (1/oddX * 100)
+    implied_away = (1/odd2 * 100)
+    
+    # Κανονικοποίηση
     total_implied = implied_home + implied_draw + implied_away
     if total_implied > 0:
-        implied_home = implied_home / total_implied * 100
-        implied_draw = implied_draw / total_implied * 100
-        implied_away = implied_away / total_implied * 100
+        implied_home = (implied_home / total_implied) * 100
+        implied_draw = (implied_draw / total_implied) * 100
+        implied_away = (implied_away / total_implied) * 100
     
+    # Υπολογισμός edges
+    home_edge = p1 * 100 - implied_home
+    draw_edge = pX * 100 - implied_draw
+    away_edge = p2 * 100 - implied_away
+    
+    # Δημιουργία dictionary μόνο με αριθμητικές τιμές
     metrics = {
-        'home_edge': p1 * 100 - implied_home,
-        'draw_edge': pX * 100 - implied_draw,
-        'away_edge': p2 * 100 - implied_away,
+        'home_edge': home_edge,
+        'draw_edge': draw_edge,
+        'away_edge': away_edge
     }
     
-    # Ποια απόδοση έχει value (με έλεγχο για κενό dictionary)
-    if metrics:
-        metrics['best_value'] = max(metrics, key=metrics.get)
-        metrics['value_amount'] = max(metrics.values())
+    # Εύρεση best value - με απόλυτη εξασφάλιση
+    edges = [home_edge, draw_edge, away_edge]
+    edge_names = ['home_edge', 'draw_edge', 'away_edge']
+    
+    if edges:
+        max_edge = max(edges)
+        max_index = edges.index(max_edge)
+        metrics['best_value'] = edge_names[max_index]
+        metrics['value_amount'] = max_edge
     else:
         metrics['best_value'] = 'home_edge'
         metrics['value_amount'] = 0
@@ -170,9 +190,10 @@ def get_risk_advice(p1, pX, p2, conf):
 # SAFE FUNCTION FOR ODDS
 # ==============================
 def sf(x):
+    """Ασφαλής μετατροπή odds"""
     try: 
         v = float(str(x).replace(',','.'))
-        return v if v > 1.0 else 1.01  # Ελάχιστη απόδοση 1.01 για αποφυγή διαίρεσης με μηδέν
+        return max(1.01, v)  # Ελάχιστη απόδοση 1.01
     except: 
         return 1.01
 
@@ -198,7 +219,10 @@ total = h_t + a_t
 # Ασφαλής υπολογισμός implied probabilities
 try:
     inv = (1/odd1 + 1/oddX + 1/odd2)
-    pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
+    if inv > 0:
+        pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
+    else:
+        pm1 = pmX = pm2 = 0.33
 except:
     pm1 = pmX = pm2 = 0.33
 
@@ -230,7 +254,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE v17.2.6 (UPDATED)
+# FINAL LOGIC ENGINE v17.2.6
 # ==============================
 real_probs = {'1': p1, 'X': pX, '2': p2}
 res = max(real_probs, key=real_probs.get)
@@ -334,7 +358,7 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
     with col1:
         st.markdown("### 📋 Παράγοντες Πρόβλεψης")
         if explanations:
-            for exp in explanations[:3]:  # First 3 factors
+            for exp in explanations[:3]:
                 st.markdown(f"- {exp}")
         else:
             st.markdown("- Ανεπαρκή στατιστικά για αναλυτική εξήγηση")
@@ -342,7 +366,7 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
     with col2:
         st.markdown("### ⚖️ Ανάλυση Value")
         if len(explanations) > 3:
-            for exp in explanations[3:]:  # Remaining factors
+            for exp in explanations[3:]:
                 st.markdown(f"- {exp}")
         else:
             # Value metrics
@@ -352,13 +376,16 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 'away_edge': 'Διπλό (2)'
             }
             
-            if abs(metrics['value_amount']) > 5:
-                if metrics['value_amount'] > 0:
-                    st.markdown(f"✅ **Value detected**: +{metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
+            value_amount = metrics.get('value_amount', 0)
+            best_value = metrics.get('best_value', 'home_edge')
+            
+            if abs(value_amount) > 5:
+                if value_amount > 0:
+                    st.markdown(f"✅ **Value detected**: +{value_amount:.1f}% στο {value_map[best_value]}")
                 else:
-                    st.markdown(f"❌ **Overpriced**: {metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
+                    st.markdown(f"❌ **Overpriced**: {value_amount:.1f}% στο {value_map[best_value]}")
             else:
-                st.markdown(f"⚖️ **Fair value**: {metrics['value_amount']:.1f}% διαφορά")
+                st.markdown(f"⚖️ **Fair value**: {value_amount:.1f}% διαφορά")
     
     # Πίνακας σύγκρισης
     st.markdown("---")
