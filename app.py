@@ -87,21 +87,24 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
         if a_t > 0 and st_session.aw > st_session.al * 2:
             explanation_parts.append("⚽ **Επιθετικό πλεονέκτημα**: Η φιλοξενούμενη σκοράρει συχνά")
     
-    # 2. Ανάλυση αποδόσεων
-    implied_home = 1/odd1 * 100
-    implied_draw = 1/oddX * 100
-    implied_away = 1/odd2 * 100
+    # 2. Ανάλυση αποδόσεων - ΜΕ ΕΛΕΓΧΟ ΓΙΑ ΜΗΔΕΝ
+    if odd1 > 1.0:
+        implied_home = 1/odd1 * 100
+        if implied_home < 40 and p1 > 0.5:
+            explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd1:.2f} είναι υψηλή για {p1*100:.0f}% πιθανότητα")
     
-    if implied_home < 40 and p1 > 0.5:
-        explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd1:.2f} είναι υψηλή για {p1*100:.0f}% πιθανότητα")
-    elif implied_away < 40 and p2 > 0.5:
-        explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd2:.2f} είναι υψηλή για {p2*100:.0f}% πιθανότητα")
+    if odd2 > 1.0:
+        implied_away = 1/odd2 * 100
+        if implied_away < 40 and p2 > 0.5:
+            explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd2:.2f} είναι υψηλή για {p2*100:.0f}% πιθανότητα")
     
     # 3. Ανάλυση Χ (ισοπαλίας)
-    if pX > 0.35:
-        explanation_parts.append(f"🤝 **Υψηλή πιθανότητα ισοπαλίας**: {pX*100:.0f}% - Προσοχή στο Χ")
-    elif pX < 0.20 and pX < (implied_draw/100):
-        explanation_parts.append("⚡ **Χαμηλό Χ**: Οι ομάδες δεν ισοπαλούν συχνά")
+    if oddX > 1.0:
+        implied_draw = 1/oddX * 100
+        if pX > 0.35:
+            explanation_parts.append(f"🤝 **Υψηλή πιθανότητα ισοπαλίας**: {pX*100:.0f}% - Προσοχή στο Χ")
+        elif pX < 0.20 and pX < (implied_draw/100):
+            explanation_parts.append("⚡ **Χαμηλό Χ**: Οι ομάδες δεν ισοπαλούν συχνά")
     
     # 4. Εξήγηση τελικής πρότασης
     proposal = st_session.get('current_proposal', '')
@@ -122,11 +125,19 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
 
 def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
     """
-    Υπολογίζει βασικές μετρικές για σύγκριση
+    Υπολογίζει βασικές μετρικές για σύγκριση - ΜΕ ΑΣΦΑΛΗ ΥΠΟΛΟΓΙΣΜΟ
     """
-    implied_home = 1/odd1 * 100
-    implied_draw = 1/oddX * 100
-    implied_away = 1/odd2 * 100
+    # Ασφαλής υπολογισμός implied probabilities
+    implied_home = (1/odd1 * 100) if odd1 > 1.0 else 33.33
+    implied_draw = (1/oddX * 100) if oddX > 1.0 else 33.33
+    implied_away = (1/odd2 * 100) if odd2 > 1.0 else 33.33
+    
+    # Κανονικοποίηση αν χρειάζεται
+    total_implied = implied_home + implied_draw + implied_away
+    if total_implied > 0:
+        implied_home = implied_home / total_implied * 100
+        implied_draw = implied_draw / total_implied * 100
+        implied_away = implied_away / total_implied * 100
     
     metrics = {
         'home_edge': p1 * 100 - implied_home,
@@ -134,9 +145,13 @@ def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
         'away_edge': p2 * 100 - implied_away,
     }
     
-    # Ποια απόδοση έχει value
-    metrics['best_value'] = max(metrics, key=metrics.get)
-    metrics['value_amount'] = max(metrics.values())
+    # Ποια απόδοση έχει value (με έλεγχο για κενό dictionary)
+    if metrics:
+        metrics['best_value'] = max(metrics, key=metrics.get)
+        metrics['value_amount'] = max(metrics.values())
+    else:
+        metrics['best_value'] = 'home_edge'
+        metrics['value_amount'] = 0
     
     return metrics
 
@@ -152,20 +167,24 @@ def get_risk_advice(p1, pX, p2, conf):
         return "🔴 **Χαμηλή εμπιστοσύνη**: Μικρό ποντάρισμα ή αποφυγή"
 
 # ==============================
+# SAFE FUNCTION FOR ODDS
+# ==============================
+def sf(x):
+    try: 
+        v = float(str(x).replace(',','.'))
+        return v if v > 1.0 else 1.01  # Ελάχιστη απόδοση 1.01 για αποφυγή διαίρεσης με μηδέν
+    except: 
+        return 1.01
+
+# ==============================
 # SIDEBAR INPUTS
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
     st.button("🧹 Clear Stats & Odds", on_click=reset_all, use_container_width=True)
-    o1_i = st.text_input("Άσος (1)", key="o1")
-    ox_i = st.text_input("Ισοπαλία (X)", key="ox")
-    o2_i = st.text_input("Διπλό (2)", key="o2")
-
-def sf(x):
-    try: 
-        v = float(str(x).replace(',','.'))
-        return v if v > 0 else 1.0
-    except: return 1.0
+    o1_i = st.text_input("Άσος (1)", value="1.00", key="o1")
+    ox_i = st.text_input("Ισοπαλία (X)", value="1.00", key="ox")
+    o2_i = st.text_input("Διπλό (2)", value="1.00", key="o2")
 
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
@@ -176,10 +195,14 @@ h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
 total = h_t + a_t
 
-inv = (1/odd1 + 1/oddX + 1/odd2)
-pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
+# Ασφαλής υπολογισμός implied probabilities
+try:
+    inv = (1/odd1 + 1/oddX + 1/odd2)
+    pm1, pmX, pm2 = (1/odd1)/inv, (1/oddX)/inv, (1/odd2)/inv
+except:
+    pm1 = pmX = pm2 = 0.33
 
-alpha = min(1.0, total / 15)
+alpha = min(1.0, total / 15) if total > 0 else 0
 
 # Loss Penalty 0.3
 h_wr = (st.session_state.hw - (st.session_state.hl * 0.3)) / h_t if h_t > 0 else pm1
@@ -203,7 +226,8 @@ if pX > 0.50 and avg_draw < 0.40:
     pX = 0.50
 
 s = p1 + pX + p2
-p1, pX, p2 = p1/s, pX/s, p2/s
+if s > 0:
+    p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
 # FINAL LOGIC ENGINE v17.2.6 (UPDATED)
@@ -271,9 +295,9 @@ if warning:
 # ==============================
 with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
     
-    # Υπολογισμός εξηγήσεων και μετρικών - ΔΙΟΡΘΩΜΕΝΟ
+    # Υπολογισμός εξηγήσεων και μετρικών
     explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
-    metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)  # 6 ορίσματα - ΣΩΣΤΑ
+    metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
     
     # Γράφημα σύγκρισης
     fig_comparison = go.Figure()
@@ -328,10 +352,11 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 'away_edge': 'Διπλό (2)'
             }
             
-            if metrics['value_amount'] > 5:
-                st.markdown(f"✅ **Value detected**: +{metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
-            elif metrics['value_amount'] < -5:
-                st.markdown(f"❌ **Overpriced**: {metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
+            if abs(metrics['value_amount']) > 5:
+                if metrics['value_amount'] > 0:
+                    st.markdown(f"✅ **Value detected**: +{metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
+                else:
+                    st.markdown(f"❌ **Overpriced**: {metrics['value_amount']:.1f}% στο {value_map[metrics['best_value']]}")
             else:
                 st.markdown(f"⚖️ **Fair value**: {metrics['value_amount']:.1f}% διαφορά")
     
@@ -353,7 +378,7 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
     
     # Risk advice
     st.markdown("---")
-    st.markdown(f"### 💡 Συμβουλή Διαχείρισης Ρίσκου")
+    st.markdown("### 💡 Συμβουλή Διαχείρισης Ρίσκου")
     st.info(get_risk_advice(p1, pX, p2, conf))
 
 st.markdown("---")
