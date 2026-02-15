@@ -271,9 +271,9 @@ if warning:
 # ==============================
 with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
     
-    # Υπολογισμός εξηγήσεων και μετρικών
+    # Υπολογισμός εξηγήσεων και μετρικών - ΔΙΟΡΘΩΜΕΝΟ
     explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
-    metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
+    metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)  # 6 ορίσματα - ΣΩΣΤΑ
     
     # Γράφημα σύγκρισης
     fig_comparison = go.Figure()
