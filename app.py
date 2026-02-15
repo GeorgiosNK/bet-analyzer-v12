@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.2.7", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.2.8", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -44,6 +44,14 @@ st.markdown("""
     border-radius: 8px; border: 1px solid #ffeeba; margin: 10px 0;
     font-weight: bold; text-align: center;
 }
+.dc-card {
+    padding: 15px; border-radius: 10px; margin: 10px 0; 
+    border-left: 5px solid;
+    transition: transform 0.2s;
+}
+.dc-card:hover {
+    transform: translateX(5px);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -61,6 +69,149 @@ def reset_all():
     for k in ['hw','hd','hl','aw','ad','al']: st.session_state[k] = 0
     st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
     st.session_state.current_proposal = ""
+
+# ==============================
+# DOUBLE CHANCE ANALYSIS FUNCTIONS
+# ==============================
+def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
+    """
+    Αναλύει αν αξίζει η διπλή ευκαιρία με έλεγχο απόδοσης
+    """
+    recommendations = []
+    
+    # Υπολογισμός πιθανοτήτων για double chance
+    prob_1X = p1 + pX
+    prob_X2 = pX + p2
+    prob_12 = p1 + p2
+    
+    # Υπολογισμός αποδόσεων double chance
+    implied_1X = 1 / (1/odd1 + 1/oddX) if odd1 > 1.0 and oddX > 1.0 else 0
+    implied_X2 = 1 / (1/oddX + 1/odd2) if oddX > 1.0 and odd2 > 1.0 else 0
+    implied_12 = 1 / (1/odd1 + 1/odd2) if odd1 > 1.0 and odd2 > 1.0 else 0
+    
+    # Στατιστικά στοιχεία
+    if h_t > 0:
+        home_losses = st_session.hl / h_t
+        home_draws = st_session.hd / h_t
+    else:
+        home_losses = home_draws = 0.5
+    
+    if a_t > 0:
+        away_losses = st_session.al / a_t
+        away_draws = st_session.ad / a_t
+    else:
+        away_losses = away_draws = 0.5
+    
+    # 1. Έλεγχος για 1X (Γηπεδούχος ή Ισοπαλία)
+    if implied_1X > 0 and prob_1X > 0.65:  # Έστω και λίγο πάνω από 65%
+        value = prob_1X - (1/implied_1X)
+        
+        # Κριτήρια ανάλογα με την απόδοση
+        if implied_1X >= 1.80 and value > 0.03:
+            recommendations.append({
+                'pick': '1X',
+                'prob': prob_1X * 100,
+                'odds': implied_1X,
+                'value': value * 100,
+                'risk': 'high',
+                'reason': f"Ελκυστική απόδοση {implied_1X:.2f} για {prob_1X*100:.0f}% πιθανότητα"
+            })
+        elif implied_1X >= 1.50 and value > 0.05 and home_losses < 0.25:
+            recommendations.append({
+                'pick': '1X',
+                'prob': prob_1X * 100,
+                'odds': implied_1X,
+                'value': value * 100,
+                'risk': 'medium',
+                'reason': f"Γηπεδούχος αήττητος σε {prob_1X*100:.0f}% (χάνει μόνο {home_losses*100:.0f}%)"
+            })
+        elif implied_1X >= 1.30 and prob_1X > 0.75 and home_losses < 0.15:
+            recommendations.append({
+                'pick': '1X',
+                'prob': prob_1X * 100,
+                'odds': implied_1X,
+                'value': value * 100,
+                'risk': 'low',
+                'reason': f"Πολύ ασφαλές 1X - {prob_1X*100:.0f}% πιθανότητα"
+            })
+    
+    # 2. Έλεγχος για X2 (Φιλοξενούμενος ή Ισοπαλία)
+    if implied_X2 > 0 and prob_X2 > 0.65:
+        value = prob_X2 - (1/implied_X2)
+        
+        if implied_X2 >= 1.80 and value > 0.03:
+            recommendations.append({
+                'pick': 'X2',
+                'prob': prob_X2 * 100,
+                'odds': implied_X2,
+                'value': value * 100,
+                'risk': 'high',
+                'reason': f"Ελκυστική απόδοση {implied_X2:.2f} για {prob_X2*100:.0f}% πιθανότητα"
+            })
+        elif implied_X2 >= 1.50 and value > 0.05 and away_losses < 0.30:
+            recommendations.append({
+                'pick': 'X2',
+                'prob': prob_X2 * 100,
+                'odds': implied_X2,
+                'value': value * 100,
+                'risk': 'medium',
+                'reason': f"Φιλοξενούμενος αήττητος σε {prob_X2*100:.0f}% (χάνει μόνο {away_losses*100:.0f}%)"
+            })
+        elif implied_X2 >= 1.30 and prob_X2 > 0.75 and away_losses < 0.20:
+            recommendations.append({
+                'pick': 'X2',
+                'prob': prob_X2 * 100,
+                'odds': implied_X2,
+                'value': value * 100,
+                'risk': 'low',
+                'reason': f"Πολύ ασφαλές X2 - {prob_X2*100:.0f}% πιθανότητα"
+            })
+    
+    # 3. Έλεγχος για 12 (Όχι ισοπαλία)
+    if implied_12 > 0 and prob_12 > 0.80 and pX < 0.25:
+        value = prob_12 - (1/implied_12)
+        
+        if implied_12 >= 1.40 and value > 0.02:
+            risk = 'low' if prob_12 > 0.90 else 'medium'
+            recommendations.append({
+                'pick': '12',
+                'prob': prob_12 * 100,
+                'odds': implied_12,
+                'value': value * 100,
+                'risk': risk,
+                'reason': f"Σχεδόν σίγουρο όχι ισοπαλία - {pX*100:.0f}% μόνο"
+            })
+    
+    return recommendations
+
+def get_double_chance_reason(p1, pX, p2, h_t, a_t, st_session):
+    """
+    Επιστρέφει στατιστικούς λόγους για double chance
+    """
+    reasons = []
+    
+    if h_t > 0:
+        home_losses = st_session.hl / h_t
+        home_draws = st_session.hd / h_t
+        if home_losses < 0.15:
+            reasons.append(f"🏠 Γηπεδούχος: Μόνο {home_losses*100:.0f}% ήττες εντός έδρας")
+        if home_draws > 0.35:
+            reasons.append(f"🤝 Γηπεδούχος: {home_draws*100:.0f}% ισοπαλίες")
+    
+    if a_t > 0:
+        away_losses = st_session.al / a_t
+        away_draws = st_session.ad / a_t
+        if away_losses < 0.20:
+            reasons.append(f"🚀 Φιλοξενούμενος: Μόνο {away_losses*100:.0f}% ήττες εκτός έδρας")
+        if away_draws > 0.35:
+            reasons.append(f"🤝 Φιλοξενούμενος: {away_draws*100:.0f}% ισοπαλίες")
+    
+    if pX < 0.20:
+        reasons.append(f"⚡ Πολύ λίγες ισοπαλίες ({pX*100:.0f}%) - Ψάξε για 12")
+    elif pX > 0.35:
+        reasons.append(f"⚠️ Υψηλό ποσοστό ισοπαλιών ({pX*100:.0f}%) - Προσοχή")
+    
+    return reasons
 
 # ==============================
 # FUNCTIONS FOR EXPLANATIONS
@@ -103,7 +254,7 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
         implied_draw = 1/oddX * 100
         if pX > 0.35:
             explanation_parts.append(f"🤝 **Υψηλή πιθανότητα ισοπαλίας**: {pX*100:.0f}% - Προσοχή στο Χ")
-        elif pX < 0.20 and pX < (implied_draw/100):
+        elif pX < 0.20:
             explanation_parts.append("⚡ **Χαμηλό Χ**: Οι ομάδες δεν ισοπαλούν συχνά")
     
     # 4. Εξήγηση τελικής πρότασης
@@ -125,7 +276,7 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
 
 def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
     """
-    Υπολογίζει βασικές μετρικές για σύγκριση - ΠΛΗΡΩΣ ΔΙΟΡΘΩΜΕΝΟ
+    Υπολογίζει βασικές μετρικές για σύγκριση
     """
     # Εξασφαλίζουμε ότι όλες οι τιμές είναι έγκυρες
     p1 = max(0.01, min(0.99, p1)) if isinstance(p1, (int, float)) else 0.33
@@ -153,14 +304,14 @@ def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
     draw_edge = pX * 100 - implied_draw
     away_edge = p2 * 100 - implied_away
     
-    # Δημιουργία dictionary μόνο με αριθμητικές τιμές
+    # Δημιουργία dictionary
     metrics = {
         'home_edge': home_edge,
         'draw_edge': draw_edge,
         'away_edge': away_edge
     }
     
-    # Εύρεση best value - με απόλυτη εξασφάλιση
+    # Εύρεση best value
     edges = [home_edge, draw_edge, away_edge]
     edge_names = ['home_edge', 'draw_edge', 'away_edge']
     
@@ -193,7 +344,7 @@ def sf(x):
     """Ασφαλής μετατροπή odds"""
     try: 
         v = float(str(x).replace(',','.'))
-        return max(1.01, v)  # Ελάχιστη απόδοση 1.01
+        return max(1.01, v)
     except: 
         return 1.01
 
@@ -210,7 +361,7 @@ with st.sidebar:
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE v17.2.6
+# CALCULATIONS ENGINE
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -254,7 +405,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE v17.2.6
+# FINAL LOGIC ENGINE
 # ==============================
 real_probs = {'1': p1, 'X': pX, '2': p2}
 res = max(real_probs, key=real_probs.get)
@@ -263,32 +414,14 @@ conf = int(real_probs[res] * 100)
 
 base = res
 
-# ΚΑΝΟΝΑΣ ΚΑΛΥΨΗΣ: Μόνο αν το Χ είναι >= 20%
-has_cover_reason = pX >= 0.20
+# Double Chance Analysis για κύρια πρόταση
+dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
 
-if res == "1" and odd_check >= 2.00 and has_cover_reason:
-    base = "1X"
-elif res == "2" and odd_check >= 2.00 and has_cover_reason:
-    base = "X2"
-elif 0.20 <= pX < 0.40 and res != "X":
-    base = f"{res} ({'1X' if res == '1' else 'X2'})"
-elif pX >= 0.40:
-    base = "X"
-
-# Κανόνας Διπλάσιας Θετικής Πιθανότητας (X2 / 1X)
-h_pos = (st.session_state.hw + st.session_state.hd) / h_t if h_t > 0 else 0
-a_pos = (st.session_state.aw + st.session_state.ad) / a_t if a_t > 0 else 0
-
-if a_pos >= 2 * h_pos and h_pos > 0 and has_cover_reason:
-    base = "X2"
-elif h_pos >= 2 * a_pos and a_pos > 0 and has_cover_reason:
-    base = "1X"
-
-# ΤΕΛΙΚΗ ΕΠΙΒΟΛΗ (Override): Καθαρό σημείο σε κυρίαρχα φαβορί ή χαμηλό Χ (<20%)
-if res == "1" and (p1 > 0.70 or pX < 0.20):
-    base = "1"
-elif res == "2" and (p2 > 0.70 or pX < 0.20):
-    base = "2"
+# Αν υπάρχει καλή πρόταση double chance, επηρέασε την κύρια πρόταση
+if dc_recommendations:
+    best_dc = max(dc_recommendations, key=lambda x: x['value'])
+    if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
+        base = best_dc['pick']
 
 proposal = f"{base} (VALUE)"
 st.session_state.current_proposal = proposal
@@ -305,7 +438,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.7</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.6</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
@@ -315,11 +448,88 @@ if warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
 
 # ==============================
+# DOUBLE CHANCE ANALYSIS SECTION
+# ==============================
+with st.expander("🛡️ Double Chance Analysis", expanded=False):
+    
+    # Ανάλυση double chance
+    dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
+    dc_reasons = get_double_chance_reason(p1, pX, p2, h_t, a_t, st.session_state)
+    
+    if dc_recommendations:
+        st.markdown("### 🎯 Double Chance Opportunities")
+        
+        for rec in dc_recommendations:
+            # Χρωματισμός με βάση απόδοση
+            if rec['odds'] >= 1.80:
+                bg_color = "#e8f5e9"
+                border_color = "#2ecc71"
+            elif rec['odds'] >= 1.50:
+                bg_color = "#fff3e0"
+                border_color = "#f39c12"
+            else:
+                bg_color = "#e3f2fd"
+                border_color = "#3498db"
+            
+            # Value text
+            if rec['value'] > 10:
+                value_text = f"🔥 +{rec['value']:.1f}%"
+                value_color = "#2ecc71"
+            elif rec['value'] > 5:
+                value_text = f"📈 +{rec['value']:.1f}%"
+                value_color = "#f1c40f"
+            else:
+                value_text = f"⚖️ +{rec['value']:.1f}%"
+                value_color = "#95a5a6"
+            
+            # Risk label
+            risk_label = "🔴 Υψηλό" if rec['risk'] == 'high' else "🟡 Μέτριο" if rec['risk'] == 'medium' else "🟢 Χαμηλό"
+            
+            st.markdown(f"""
+            <div class="dc-card" style="background-color: {bg_color}; border-left-color: {border_color};">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: 2rem; font-weight: bold; color: #1e3c72;">{rec['pick']}</span>
+                        <span style="font-size: 1.2rem; margin-left: 10px; background-color: white; padding: 3px 10px; border-radius: 15px;">
+                            {rec['prob']:.1f}%
+                        </span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.8rem; font-weight: bold;">{rec['odds']:.2f}</div>
+                        <div style="color: {value_color};">{value_text}</div>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; color: #34495e;">
+                    📌 {rec['reason']}
+                </div>
+                <div style="margin-top: 5px; font-size: 0.9rem;">
+                    Ρίσκο: {risk_label}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("ℹ️ Δεν εντοπίστηκαν ευκαιρίες double chance με καλή απόδοση/πιθανότητα")
+    
+    # Στατιστικοί λόγοι
+    if dc_reasons:
+        with st.expander("📊 Στατιστικά Στοιχεία", expanded=False):
+            for reason in dc_reasons:
+                st.markdown(f"- {reason}")
+    
+    # Quick tips
+    st.markdown("---")
+    st.markdown("""
+    **💡 Double Chance Tips:**
+    - 🟢 **Χαμηλό ρίσκο**: Αποδόσεις 1.30-1.50, >75% πιθανότητα
+    - 🟡 **Μέτριο ρίσκο**: Αποδόσεις 1.50-1.80, >70% πιθανότητα
+    - 🔴 **Υψηλό ρίσκο**: Αποδόσεις 1.80+, >65% πιθανότητα + value
+    """)
+
+# ==============================
 # ANALYTICAL EXPLANATIONS
 # ==============================
 with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
     
-    # Υπολογισμός εξηγήσεων και μετρικών
     explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
     metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
     
@@ -369,7 +579,6 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
             for exp in explanations[3:]:
                 st.markdown(f"- {exp}")
         else:
-            # Value metrics
             value_map = {
                 'home_edge': 'Άσος (1)',
                 'draw_edge': 'Ισοπαλία (Χ)',
@@ -416,14 +625,14 @@ st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες στα τελευταία 5 εντός έδρας παιχνίδια")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες στα τελευταία 5 εντός έδρας παιχνίδια")
-    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες στα τελευταία 5 εντός έδρας παιχνίδια")
+    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες στα τελευταία 5 εντός έδρας")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες στα τελευταία 5 εντός έδρας")
+    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες στα τελευταία 5 εντός έδρας")
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες στα τελευταία 5 εκτός έδρας παιχνίδια")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες στα τελευταία 5 εκτός έδρας παιχνίδια")
-    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες στα τελευταία 5 εκτός έδρας παιχνίδια")
+    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες στα τελευταία 5 εκτός έδρας")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες στα τελευταία 5 εκτός έδρας")
+    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες στα τελευταία 5 εκτός έδρας")
 
 # ==============================
 # MAIN BAR CHART
@@ -442,4 +651,4 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.6 - Η ανάλυση βασίζεται στα στατιστικά των ομάδων και τις αποδόσεις της αγοράς")
+st.caption("BetAnalyzer v17.2.6 - Double Chance Analysis με έλεγχο απόδοσης")
