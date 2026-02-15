@@ -103,10 +103,9 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
         away_losses = away_draws = 0.5
     
     # 1. Έλεγχος για 1X (Γηπεδούχος ή Ισοπαλία)
-    if implied_1X > 0 and prob_1X > 0.65:  # Έστω και λίγο πάνω από 65%
+    if implied_1X > 0 and prob_1X > 0.65:
         value = prob_1X - (1/implied_1X)
         
-        # Κριτήρια ανάλογα με την απόδοση
         if implied_1X >= 1.80 and value > 0.03:
             recommendations.append({
                 'pick': '1X',
@@ -526,41 +525,12 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     """)
 
 # ==============================
-# ANALYTICAL EXPLANATIONS
+# ANALYTICAL EXPLANATIONS (ΧΩΡΙΣ ΓΡΑΦΗΜΑ)
 # ==============================
 with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
     
     explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
     metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
-    
-    # Γράφημα σύγκρισης
-    fig_comparison = go.Figure()
-    fig_comparison.add_trace(go.Bar(
-        name='Μοντέλο',
-        x=['1', 'X', '2'],
-        y=[p1*100, pX*100, p2*100],
-        marker_color='#2ecc71',
-        text=[f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"],
-        textposition='inside',
-        textfont=dict(color="white", size=12)
-    ))
-    fig_comparison.add_trace(go.Bar(
-        name='Bookie',
-        x=['1', 'X', '2'],
-        y=[1/odd1*100, 1/oddX*100, 1/odd2*100],
-        marker_color='#1e3c72',
-        text=[f"{1/odd1*100:.1f}%", f"{1/oddX*100:.1f}%", f"{1/odd2*100:.1f}%"],
-        textposition='inside',
-        textfont=dict(color="white", size=12)
-    ))
-    fig_comparison.update_layout(
-        title="📊 Σύγκριση Πιθανοτήτων: Μοντέλο vs Bookie",
-        barmode='group',
-        height=350,
-        yaxis_title="Πιθανότητα %",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    st.plotly_chart(fig_comparison, use_container_width=True)
     
     # Explanations σε δύο στήλες
     col1, col2 = st.columns(2)
@@ -651,4 +621,4 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.6 - Double Chance Analysis με έλεγχο απόδοσης")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης")
