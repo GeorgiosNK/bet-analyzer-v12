@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.2.6", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.2.8", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -453,7 +453,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.6</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.8</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
