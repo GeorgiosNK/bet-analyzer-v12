@@ -637,4 +637,4 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.6 - Double Chance Analysis με έλεγχο απόδοσης")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης")
