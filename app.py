@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.2.8", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.2.6", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -56,18 +56,34 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================
-# STATE INITIALIZATION
+# STATE INITIALIZATION (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 if 'hw' not in st.session_state:
-    st.session_state.update({'hw':0,'hd':0,'hl':0,'aw':0,'ad':0,'al':0})
+    st.session_state.hw = 0
+    st.session_state.hd = 0
+    st.session_state.hl = 0
+    st.session_state.aw = 0
+    st.session_state.ad = 0
+    st.session_state.al = 0
+
 if 'o1' not in st.session_state:
-    st.session_state.update({'o1':"1.00",'ox':"1.00",'o2':"1.00"})
+    st.session_state.o1 = "1.00"
+    st.session_state.ox = "1.00"
+    st.session_state.o2 = "1.00"
+
 if 'current_proposal' not in st.session_state:
     st.session_state.current_proposal = ""
 
 def reset_all():
-    for k in ['hw','hd','hl','aw','ad','al']: st.session_state[k] = 0
-    st.session_state.o1 = st.session_state.ox = st.session_state.o2 = "1.00"
+    st.session_state.hw = 0
+    st.session_state.hd = 0
+    st.session_state.hl = 0
+    st.session_state.aw = 0
+    st.session_state.ad = 0
+    st.session_state.al = 0
+    st.session_state.o1 = "1.00"
+    st.session_state.ox = "1.00"
+    st.session_state.o2 = "1.00"
     st.session_state.current_proposal = ""
 
 # ==============================
@@ -348,14 +364,14 @@ def sf(x):
         return 1.01
 
 # ==============================
-# SIDEBAR INPUTS
+# SIDEBAR INPUTS (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
     st.button("🧹 Clear Stats & Odds", on_click=reset_all, use_container_width=True)
-    o1_i = st.text_input("Άσος (1)", value="1.00", key="o1")
-    ox_i = st.text_input("Ισοπαλία (X)", value="1.00", key="ox")
-    o2_i = st.text_input("Διπλό (2)", value="1.00", key="o2")
+    o1_i = st.text_input("Άσος (1)", key="o1")
+    ox_i = st.text_input("Ισοπαλία (X)", key="ox")
+    o2_i = st.text_input("Διπλό (2)", key="o2")
 
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
@@ -437,7 +453,7 @@ elif odd1 <= 1.55 and pX > 0.28:
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.8</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.6</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
 </div>
@@ -621,4 +637,4 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης")
+st.caption("BetAnalyzer v17.2.6 - Double Chance Analysis με έλεγχο απόδοσης")
