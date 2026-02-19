@@ -429,6 +429,16 @@ conf = int(real_probs[res] * 100)
 
 base = res
 
+# --- ΑΛΛΑΓΗ: ΚΑΝΟΝΑΣ ΑΗΤΤΗΤΟΥ ---
+home_undefeated = (st.session_state.hl == 0 and h_t >= 2)
+away_undefeated = (st.session_state.al == 0 and a_t >= 2)
+
+if res == "2" and home_undefeated:
+    base = "1X"
+elif res == "1" and away_undefeated:
+    base = "X2"
+# -------------------------------
+
 # Double Chance Analysis για κύρια πρόταση
 dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
 
