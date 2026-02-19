@@ -87,7 +87,7 @@ def reset_all():
     st.session_state.current_proposal = ""
 
 # ==============================
-# DOUBLE CHANCE ANALYSIS FUNCTIONS
+# DOUBLE CHANCE ANALYSIS FUNCTIONS (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     recommendations = []
@@ -105,6 +105,7 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     # 1. Έλεγχος για 1X
     if implied_1X > 0:
         value = prob_1X - (1/implied_1X)
+        # Προσθήκη: Αν είναι αήττητος ο γηπεδούχος, εμφάνισε την ευκαιρία ακόμα και με χαμηλότερο value
         if (home_losses == 0 and h_t >= 2) or (prob_1X > 0.65 and value > 0.02):
             risk = 'low' if prob_1X > 0.75 else 'medium'
             recommendations.append({
