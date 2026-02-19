@@ -477,47 +477,73 @@ if total < 6:
 elif total < 10:
     # Μείωση confidence ανάλογα με τον όγκο δεδομένων
     confidence_multiplier = total / 10
-    conf = int(base_conf * confidence_multiplier)
-    conf = min(conf, 60)  # Max 60% με λίγα δεδομένα
-    warning = "⚠️ ΜΕΙΩΜΕΝΗ ΑΞΙΟΠΙΣΤΙΑ: Λίγα στατιστικά δεδομένα"
-elif total < 15:
-    # Μέτρια δεδομένα - λογικό confidence
-    conf = min(base_conf, 75)  # Max 75% με μέτρια δεδομένα
-    warning = ""
+  # ==============================
+# CONFIDENCE & PROPOSAL FINALIZATION (ΔΙΟΡΘΩΜΕΝΟ)
+# ==============================
+
+# Αρχικοποίηση μεταβλητών
+proposal = ""
+warning = ""
+conf = 0
+color = "#95a5a6"
+
+# Έλεγχος στατιστικής επάρκειας
+if total < 6:
+    proposal = "🚫 NO BET"
+    warning = "⚠️ ΑΝΕΠΑΡΚΗ ΣΤΑΤΙΣΤΙΚΑ: Χρειάζονται τουλάχιστον 6 συνολικά παιχνίδια"
+    conf = 0
+    color = "#95a5a6"
 else:
-    # Καλό confidence για επαρκή δεδομένα
-    conf = min(base_conf, 90)  # Max 90% πάντα
-    warning = ""
-
-# Επιπλέον έλεγχος για πολύ χαμηλό pX
-if pX < 0.30 and res == "X" and total >= 6:
-    # Αν το μοντέλο προτείνει Χ αλλά η πιθανότητα είναι μικρή
-    if p1 > p2:
-        base = "1X"
+    # Κανονικός υπολογισμός για επαρκή δεδομένα
+    if total < 10:
+        confidence_multiplier = total / 10
+        conf = int(base_conf * confidence_multiplier)
+        conf = min(conf, 60)
+        warning = "⚠️ ΜΕΙΩΜΕΝΗ ΑΞΙΟΠΙΣΤΙΑ: Λίγα στατιστικά δεδομένα"
+    elif total < 15:
+        conf = min(base_conf, 75)
+        warning = ""
     else:
-        base = "X2"
-    conf = min(conf, 50)  # Μείωσε το confidence
-
-# Ειδικός κανόνας για το σενάριο με 0 νίκες γηπεδούχου
-if h_t >= 2 and st.session_state.hw == 0 and a_t >= 3 and st.session_state.al >= 2:
-    if pX > 0.30:
-        base = "X2"
+        conf = min(base_conf, 90)
+        warning = ""
+    
+    # Επιπλέον έλεγχοι
+    if pX < 0.30 and res == "X":
+        if p1 > p2:
+            base = "1X"
+        else:
+            base = "X2"
+        conf = min(conf, 50)
+    
+    if h_t >= 2 and st.session_state.hw == 0 and a_t >= 3 and st.session_state.al >= 2:
+        if pX > 0.30:
+            base = "X2"
+        else:
+            base = "12"
+        conf = min(conf, 55)
+        if not warning:
+            warning = "⚠️ ΑΜΦΙΡΡΟΠΟ ΜΑΤΣ: Και οι δύο ομάδες έχουν αδυναμίες"
+    
+    # Double Chance Analysis
+    dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
+    
+    if dc_recommendations and total >= 8:
+        best_dc = max(dc_recommendations, key=lambda x: x['value'])
+        if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
+            base = best_dc['pick']
+    
+    # Τελικό proposal
+    proposal = f"{base} (VALUE)"
+    
+    # Χρώμα confidence
+    if conf >= 65:
+        color = "#2ecc71"
+    elif conf >= 45:
+        color = "#f1c40f"
     else:
-        base = "12"
-    conf = min(conf, 55)
-    if not warning:
-        warning = "⚠️ ΑΜΦΙΡΡΟΠΟ ΜΑΤΣ: Και οι δύο ομάδες έχουν αδυναμίες"
+        color = "#e74c3c"
 
-# Double Chance Analysis για κύρια πρόταση
-dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
-
-# Αν υπάρχει καλή πρόταση double chance και τα δεδομένα είναι επαρκή
-if dc_recommendations and total >= 8:
-    best_dc = max(dc_recommendations, key=lambda x: x['value'])
-    if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
-        base = best_dc['pick']
-
-# Τελικό proposal
+st.session_state.current_proposal = proposal
 if proposal != "🚫 NO BET":
     proposal = f"{base} (VALUE)"
 st.session_state.current_proposal = proposal
