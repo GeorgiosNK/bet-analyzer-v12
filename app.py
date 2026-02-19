@@ -118,7 +118,7 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     else:
         away_losses = away_draws = 0.5
     
-    # 1. Έλεγχος για 1X (Γηπεδούχος ή Ισοπαλία)
+    # 1. Έλεγχος για 1X
     if implied_1X > 0 and prob_1X > 0.65:
         value = prob_1X - (1/implied_1X)
         
@@ -150,7 +150,7 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
                 'reason': f"Πολύ ασφαλές 1X - {prob_1X*100:.0f}% πιθανότητα"
             })
     
-    # 2. Έλεγχος για X2 (Φιλοξενούμενος ή Ισοπαλία)
+    # 2. Έλεγχος για X2
     if implied_X2 > 0 and prob_X2 > 0.65:
         value = prob_X2 - (1/implied_X2)
         
@@ -182,7 +182,7 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
                 'reason': f"Πολύ ασφαλές X2 - {prob_X2*100:.0f}% πιθανότητα"
             })
     
-    # 3. Έλεγχος για 12 (Όχι ισοπαλία)
+    # 3. Έλεγχος για 12
     if implied_12 > 0 and prob_12 > 0.80 and pX < 0.25:
         value = prob_12 - (1/implied_12)
         
@@ -376,7 +376,7 @@ with st.sidebar:
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE (ΔΙΟΡΘΩΜΕΝΟ ΜΕ ΑΥΣΤΗΡΟΤΕΡΟ LOSS PENALTY)
+# CALCULATIONS ENGINE (ΔΙΟΡΘΩΜΕΝΟ ΜΕ ΠΟΛΥ ΑΥΣΤΗΡΟ LOSS PENALTY)
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -394,19 +394,33 @@ except:
 
 alpha = min(1.0, total / 15) if total > 0 else 0
 
-# ΑΥΣΤΗΡΟΤΕΡΟ LOSS PENALTY (0.5 αντί για 0.3)
-loss_penalty = 0.5
+# ΠΟΛΥ ΑΥΣΤΗΡΟ LOSS PENALTY (0.8)
+loss_penalty = 0.8
 
-# Υπολογισμός win ratios με αυστηρότερο penalty
+# Υπολογισμός win ratios με πολύ αυστηρό penalty
 h_wr = (st.session_state.hw - (st.session_state.hl * loss_penalty)) / h_t if h_t > 0 else pm1
 a_wr = (st.session_state.aw - (st.session_state.al * loss_penalty)) / a_t if a_t > 0 else pm2
 
-# ΜΠΟΝΟΥΣ ΓΙΑ ΑΗΤΤΗΤΟ (μόνο αν έχει παίξει τουλάχιστον 3 ματς)
+# Υπολογισμός points (3 για νίκη, 1 για ισοπαλία)
+home_points = st.session_state.hw * 3 + st.session_state.hd
+away_points = st.session_state.aw * 3 + st.session_state.ad
+
+# Μπόνους για καλύτερη ομάδα
+if h_t >= 3 and a_t >= 3:
+    if home_points > away_points:
+        h_wr = h_wr * 1.15  # 15% μπόνους στην καλύτερη ομάδα
+        # Μείωσε τον αντίπαλο
+        a_wr = a_wr * 0.9
+    elif away_points > home_points:
+        a_wr = a_wr * 1.15
+        h_wr = h_wr * 0.9
+
+# Μπόνους για αήττητο
 if h_t >= 3 and st.session_state.hl == 0:
-    h_wr = h_wr * 1.2  # 20% μπόνους στην γηπεδούχο
+    h_wr = h_wr * 1.2
 
 if a_t >= 3 and st.session_state.al == 0:
-    a_wr = a_wr * 1.2  # 20% μπόνους στην φιλοξενούμενη
+    a_wr = a_wr * 1.2
 
 # Υπολογισμός πιθανοτήτων
 p1 = alpha * h_wr + (1-alpha) * pm1
@@ -415,10 +429,9 @@ p2 = alpha * a_wr + (1-alpha) * pm2
 p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
-# ΕΠΙΠΛΕΟΝ ΕΛΕΓΧΟΣ: Αν η γηπεδούχος είναι αήττητη και το μοντέλο προτείνει διπλό
-if h_t >= 3 and st.session_state.hl == 0 and p2 > p1:
-    # Μείωσε δραστικά την πιθανότητα του διπλού
-    p2 = p2 * 0.5  # Μείωση 50%
+# ΕΠΙΠΛΕΟΝ ΕΛΕΓΧΟΣ: Αν η φιλοξενούμενη έχει πολλές ήττες
+if a_t >= 3 and st.session_state.al >= 2 and p2 > p1:
+    p2 = p2 * 0.4  # Μείωση 60% στο διπλό
     # Ανακατένειμε στις άλλες επιλογές
     remaining = 1 - p2
     if remaining > 0:
@@ -458,6 +471,19 @@ if dc_recommendations:
     best_dc = max(dc_recommendations, key=lambda x: x['value'])
     if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
         base = best_dc['pick']
+
+# Επιπλέον έλεγχος για ίσες ομάδες ή καλύτερη γηπεδούχο
+if h_t >= 3 and a_t >= 3:
+    home_points = st.session_state.hw * 3 + st.session_state.hd
+    away_points = st.session_state.aw * 3 + st.session_state.ad
+    
+    # Αν η γηπεδούχος έχει περισσότερους βαθμούς
+    if home_points > away_points:
+        if base == "2":
+            base = "1X"
+    # Αν η φιλοξενούμενη έχει 2+ ήττες
+    if st.session_state.al >= 2 and base == "2":
+        base = "1X"
 
 proposal = f"{base} (VALUE)"
 st.session_state.current_proposal = proposal
