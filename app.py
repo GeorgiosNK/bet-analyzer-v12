@@ -197,23 +197,23 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     
     return recommendations
 
-def get_double_chance_reason(p1, pX, p2, h_t, a_t, st_session):
+def get_double_chance_reason(p1, pX, p2, h_t, a_t):
     """
     Επιστρέφει στατιστικούς λόγους για double chance
     """
     reasons = []
     
     if h_t > 0:
-        home_losses = st_session.hl / h_t
-        home_draws = st_session.hd / h_t
+        home_losses = st.session_state.hl / h_t
+        home_draws = st.session_state.hd / h_t
         if home_losses < 0.15:
             reasons.append(f"🏠 Γηπεδούχος: Μόνο {home_losses*100:.0f}% ήττες εντός έδρας")
         if home_draws > 0.35:
             reasons.append(f"🤝 Γηπεδούχος: {home_draws*100:.0f}% ισοπαλίες")
     
     if a_t > 0:
-        away_losses = st_session.al / a_t
-        away_draws = st_session.ad / a_t
+        away_losses = st.session_state.al / a_t
+        away_draws = st.session_state.ad / a_t
         if away_losses < 0.20:
             reasons.append(f"🚀 Φιλοξενούμενος: Μόνο {away_losses*100:.0f}% ήττες εκτός έδρας")
         if away_draws > 0.35:
@@ -226,7 +226,7 @@ def get_double_chance_reason(p1, pX, p2, h_t, a_t, st_session):
 # ==============================
 # FUNCTIONS FOR EXPLANATIONS
 # ==============================
-def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
+def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t):
     """
     Δημιουργεί αναλυτική εξήγηση για την πρόταση
     """
@@ -234,7 +234,7 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     
     # Υπολογισμός πραγματικής ισοπαλίας από στατιστικά
     if h_t > 0 and a_t > 0:
-        real_draw_pct = (st_session.hd + st_session.ad) / (h_t + a_t)
+        real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         
         if real_draw_pct < 0.15:
             explanation_parts.append(f"⚡ **ΠΟΛΥ ΧΑΜΗΛΟ Χ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ**: {real_draw_pct*100:.1f}% - Ιδανικό για 12")
@@ -242,23 +242,23 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
             explanation_parts.append(f"⚡ **Χαμηλό Χ στα στατιστικά**: {real_draw_pct*100:.1f}% - Σκέψου 12")
     
     # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ισοπαλίες
-    if a_t >= 10 and st_session.ad / a_t < 0.10:
-        explanation_parts.append(f"🚨 **ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ**: Μόνο {(st_session.ad / a_t)*100:.1f}% ισοπαλίες εκτός έδρας!")
+    if a_t >= 10 and st.session_state.ad / a_t < 0.10:
+        explanation_parts.append(f"🚨 **ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ**: Μόνο {(st.session_state.ad / a_t)*100:.1f}% ισοπαλίες εκτός έδρας!")
     
     # 1. Ανάλυση στατιστικών
     if h_t > 0 and a_t > 0:
-        h_pos = (st_session.hw + st_session.hd) / h_t
-        a_pos = (st_session.aw + st_session.ad) / a_t
+        h_pos = (st.session_state.hw + st.session_state.hd) / h_t
+        a_pos = (st.session_state.aw + st.session_state.ad) / a_t
         
         if h_pos > 0.7:
             explanation_parts.append("🏠 **Ισχυρή εντός έδρας ομάδα**: Η γηπεδούχος έχει πολύ καλή φόρμα")
         elif a_pos > 0.7:
             explanation_parts.append("🚀 **Ισχυρή εκτός έδρας ομάδα**: Η φιλοξενούμενη έχει πολύ καλή φόρμα")
         
-        if h_t > 0 and st_session.hw > st_session.hl * 2:
+        if h_t > 0 and st.session_state.hw > st.session_state.hl * 2:
             explanation_parts.append("⚽ **Επιθετικό πλεονέκτημα**: Η γηπεδούχος σκοράρει συχνά")
         
-        if a_t > 0 and st_session.aw > st_session.al * 2:
+        if a_t > 0 and st.session_state.aw > st.session_state.al * 2:
             explanation_parts.append("⚽ **Επιθετικό πλεονέκτημα**: Η φιλοξενούμενη σκοράρει συχνά")
     
     # 2. Ανάλυση αποδόσεων
@@ -274,14 +274,14 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     
     # 3. Ανάλυση Χ (ισοπαλίας) - Σύγκριση με στατιστικά
     if oddX > 1.01 and h_t > 0 and a_t > 0:
-        real_draw_pct = (st_session.hd + st_session.ad) / (h_t + a_t)
+        real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         implied_draw = 1/oddX * 100
         
         if real_draw_pct < 0.15 and implied_draw > 25:
             explanation_parts.append(f"⚠️ **ΠΑΓΙΔΑ ΣΤΟ Χ**: Η απόδοση {oddX:.2f} είναι πολύ μικρή για {real_draw_pct*100:.1f}% πραγματική πιθανότητα")
     
     # 4. Εξήγηση τελικής πρότασης
-    proposal = st_session.get('current_proposal', '')
+    proposal = st.session_state.get('current_proposal', '')
     
     if "1X" in proposal:
         explanation_parts.append("🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία 1X λόγω στατιστικών")
@@ -436,14 +436,14 @@ p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ
+# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 if h_t > 0 and a_t > 0 and total >= 10:
     # Υπολογισμός πραγματικού ποσοστού ισοπαλίας
     real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
     
     # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ισοπαλίες
-    away_draw_pct = st_session.ad / a_t if a_t > 0 else 0.25
+    away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25  # ΔΙΟΡΘΩΜΕΝΟ
     
     # ΑΝ Η ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΕΙΝΑΙ ΠΟΛΥ ΧΑΜΗΛΗ
     if real_draw_pct < 0.18 or away_draw_pct < 0.10:
@@ -483,7 +483,7 @@ base_conf = int(real_probs[res] * 100)
 base = res
 
 # ==============================
-# CONFIDENCE & PROPOSAL FINALIZATION
+# CONFIDENCE & PROPOSAL FINALIZATION (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 
 # Αρχικοποίηση μεταβλητών
@@ -502,10 +502,10 @@ if total < 6:
     conf = 0
     color = "#95a5a6"
 else:
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12
+    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12 (ΔΙΟΡΘΩΜΕΝΟ)
     if h_t > 0 and a_t > 0:
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
-        away_draw_pct = st_session.ad / a_t if a_t > 0 else 0.25
+        away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25  # ΔΙΟΡΘΩΜΕΝΟ
         
         if (real_draw_pct < 0.15 or away_draw_pct < 0.10) and total >= 10:
             base = "12"
@@ -579,7 +579,7 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     
     # Ανάλυση double chance
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
-    dc_reasons = get_double_chance_reason(p1, pX, p2, h_t, a_t, st.session_state)
+    dc_reasons = get_double_chance_reason(p1, pX, p2, h_t, a_t)
     
     if dc_recommendations and total >= 6:
         st.markdown("### 🎯 Double Chance Opportunities")
@@ -667,7 +667,7 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
 with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
     
     if total >= 6:
-        explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
+        explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
         metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
         
         # Explanations σε δύο στήλες
