@@ -119,7 +119,7 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
         away_losses = away_draws = 0.5
     
     # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12
-    if implied_12 > 0 and prob_12 > 0.85 and pX < 0.15:
+    if implied_12 > 0 and prob_12 > 0.80 and pX < 0.20:
         value = prob_12 - (1/implied_12)
         if value > 0.02:
             recommendations.append({
@@ -218,14 +218,8 @@ def get_double_chance_reason(p1, pX, p2, h_t, a_t, st_session):
             reasons.append(f"🚀 Φιλοξενούμενος: Μόνο {away_losses*100:.0f}% ήττες εκτός έδρας")
         if away_draws > 0.35:
             reasons.append(f"🤝 Φιλοξενούμενος: {away_draws*100:.0f}% ισοπαλίες")
-    
-    # Υπολογισμός πραγματικής ισοπαλίας από στατιστικά
-    if h_t > 0 and a_t > 0:
-        real_draw_pct = (st_session.hd + st_session.ad) / (h_t + a_t)
-        if real_draw_pct < 0.15:
-            reasons.append(f"⚡ ΠΟΛΥ ΛΙΓΕΣ ΙΣΟΠΑΛΙΕΣ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ ({real_draw_pct*100:.1f}%) - Ιδανικό για 12")
-        elif real_draw_pct < 0.20:
-            reasons.append(f"⚡ Λίγες ισοπαλίες στα στατιστικά ({real_draw_pct*100:.1f}%) - Σκέψου 12")
+        if away_draws < 0.10 and a_t >= 10:
+            reasons.append(f"⚡ Φιλοξενούμενος: ΜΟΝΟ {away_draws*100:.1f}% ισοπαλίες εκτός έδρας!")
     
     return reasons
 
@@ -246,6 +240,10 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
             explanation_parts.append(f"⚡ **ΠΟΛΥ ΧΑΜΗΛΟ Χ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ**: {real_draw_pct*100:.1f}% - Ιδανικό για 12")
         elif real_draw_pct < 0.20:
             explanation_parts.append(f"⚡ **Χαμηλό Χ στα στατιστικά**: {real_draw_pct*100:.1f}% - Σκέψου 12")
+    
+    # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ισοπαλίες
+    if a_t >= 10 and st_session.ad / a_t < 0.10:
+        explanation_parts.append(f"🚨 **ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ**: Μόνο {(st_session.ad / a_t)*100:.1f}% ισοπαλίες εκτός έδρας!")
     
     # 1. Ανάλυση στατιστικών
     if h_t > 0 and a_t > 0:
@@ -390,7 +388,7 @@ with st.sidebar:
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE
+# CALCULATIONS ENGINE (ΒΕΛΤΙΩΜΕΝΟ)
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -406,10 +404,12 @@ try:
 except:
     pm1 = pmX = pm2 = 0.33
 
-alpha = min(1.0, total / 15) if total > 0 else 0
+# ΒΕΛΤΙΩΣΗ 1: Μείωσε το max alpha στο 0.7 (70% βάρος στα stats, 30% στις αποδόσεις)
+max_alpha = 0.7
+alpha = min(max_alpha, total / 20) if total > 0 else 0  # Πιο αργή σύγκλιση
 
-# LOSS PENALTY (0.5 - πιο ήπιο)
-loss_penalty = 0.5
+# ΒΕΛΤΙΩΣΗ 2: Πιο ήπιο loss penalty (0.4)
+loss_penalty = 0.4
 
 # Υπολογισμός win ratios
 h_wr = (st.session_state.hw - (st.session_state.hl * loss_penalty)) / h_t if h_t > 0 else pm1
@@ -419,21 +419,14 @@ a_wr = (st.session_state.aw - (st.session_state.al * loss_penalty)) / a_t if a_t
 home_points = st.session_state.hw * 3 + st.session_state.hd
 away_points = st.session_state.aw * 3 + st.session_state.ad
 
-# Μπόνους για καλύτερη ομάδα
-if h_t >= 3 and a_t >= 3:
-    if home_points > away_points:
-        h_wr = h_wr * 1.15
-        a_wr = a_wr * 0.9
-    elif away_points > home_points:
-        a_wr = a_wr * 1.15
-        h_wr = h_wr * 0.9
-
-# Μπόνους για αήττητο
-if h_t >= 3 and st.session_state.hl == 0:
-    h_wr = h_wr * 1.2
-
-if a_t >= 3 and st.session_state.al == 0:
-    a_wr = a_wr * 1.2
+# Μπόνους για καλύτερη ομάδα (πιο ήπιο)
+if h_t >= 10 and a_t >= 10:
+    if home_points > away_points * 1.2:  # 20% καλύτερη
+        h_wr = h_wr * 1.1
+        a_wr = a_wr * 0.95
+    elif away_points > home_points * 1.2:
+        a_wr = a_wr * 1.1
+        h_wr = h_wr * 0.95
 
 # Υπολογισμός πιθανοτήτων
 p1 = alpha * h_wr + (1-alpha) * pm1
@@ -443,39 +436,37 @@ p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΚΡΙΣΙΜΗ ΠΡΟΣΘΗΚΗ!)
+# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ
 # ==============================
-if h_t > 0 and a_t > 0 and total >= 8:
-    # Υπολογισμός πραγματικού ποσοστού ισοπαλίας από τα στατιστικά
+if h_t > 0 and a_t > 0 and total >= 10:
+    # Υπολογισμός πραγματικού ποσοστού ισοπαλίας
     real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
     
+    # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ισοπαλίες
+    away_draw_pct = st_session.ad / a_t if a_t > 0 else 0.25
+    
     # ΑΝ Η ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΕΙΝΑΙ ΠΟΛΥ ΧΑΜΗΛΗ
-    if real_draw_pct < 0.15:
-        # Μείωσε δραστικά το pX
-        pX = pX * 0.2  # Μείωση 80%!
+    if real_draw_pct < 0.18 or away_draw_pct < 0.10:
+        # Μείωσε το pX
+        reduction = 0.5 if real_draw_pct < 0.15 else 0.3
+        pX = pX * (1 - reduction)
         
         # Ανακατένειμε τις πιθανότητες στα p1 και p2
         remaining = 1 - pX
-        p1 = p1 / (p1 + p2) * remaining
-        p2 = p2 / (p1 + p2) * remaining
-    
-    elif real_draw_pct < 0.20:
-        # Μείωση 50% στο pX
-        pX = pX * 0.5
-        remaining = 1 - pX
-        p1 = p1 / (p1 + p2) * remaining
-        p2 = p2 / (p1 + p2) * remaining
+        if remaining > 0:
+            p1 = p1 / (p1 + p2) * remaining
+            p2 = p2 / (p1 + p2) * remaining
 
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
 avg_draw = (real_h_draw + real_a_draw) / 2
 
-# Draw Normalization
-if pX > 0.50 and avg_draw < 0.40:
-    diff = pX - 0.50
-    p1 += diff * 0.5
-    p2 += diff * 0.5
-    pX = 0.50
+# Draw Normalization (πιο ήπια)
+if pX > 0.45 and avg_draw < 0.30:
+    diff = pX - 0.45
+    p1 += diff * 0.4
+    p2 += diff * 0.4
+    pX = 0.45
 
 s = p1 + pX + p2
 if s > 0:
@@ -511,20 +502,15 @@ if total < 6:
     conf = 0
     color = "#95a5a6"
 else:
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12 ΜΕ ΒΑΣΗ ΤΑ ΠΡΑΓΜΑΤΙΚΑ ΣΤΑΤΙΣΤΙΚΑ
+    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12
     if h_t > 0 and a_t > 0:
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+        away_draw_pct = st_session.ad / a_t if a_t > 0 else 0.25
         
-        # Αν η πραγματική ισοπαλία είναι <15% και έχουμε αρκετά δεδομένα
-        if real_draw_pct < 0.15 and total >= 8:
+        if (real_draw_pct < 0.15 or away_draw_pct < 0.10) and total >= 10:
             base = "12"
             base_conf = int(prob_12 * 100)
-            warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Η ισοπαλία είναι μόνο {:.1f}% στα στατιστικά".format(real_draw_pct * 100)
-        # Αν η πραγματική ισοπαλία είναι <20%, το 12 είναι καλή εναλλακτική
-        elif real_draw_pct < 0.20 and total >= 10 and prob_12 > 0.80:
-            if base == "X" or base == "1" or base == "2":
-                base = "12"
-                base_conf = int(prob_12 * 100)
+            warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Ελάχιστες ισοπαλίες στα στατιστικά"
     
     # Κανονικός υπολογισμός confidence
     if total < 10:
@@ -534,32 +520,27 @@ else:
         if not warning and total < 8:
             warning = "⚠️ ΜΕΙΩΜΕΝΗ ΑΞΙΟΠΙΣΤΙΑ: Λίγα στατιστικά δεδομένα"
     elif total < 15:
-        conf = min(base_conf, 75)
+        conf = min(base_conf, 70)  # Μείωσα από 75 σε 70
     else:
-        conf = min(base_conf, 90)
+        conf = min(base_conf, 85)  # Μείωσα από 90 σε 85
     
     # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12
     if base != "12":
-        if pX < 0.30 and res == "X":
+        if pX < 0.25 and res == "X":
             if p1 > p2:
                 base = "1X"
             else:
                 base = "X2"
-            conf = min(conf, 50)
+            conf = min(conf, 45)
         
-        if h_t >= 2 and st.session_state.hw == 0 and a_t >= 3 and st.session_state.al >= 2:
-            if pX > 0.30:
-                base = "X2"
-            else:
-                base = "12"
-            conf = min(conf, 55)
-            if not warning:
-                warning = "⚠️ ΑΜΦΙΡΡΟΠΟ ΜΑΤΣ: Και οι δύο ομάδες έχουν αδυναμίες"
+        if h_t >= 5 and st.session_state.hw == 0 and a_t >= 5 and st.session_state.al >= 3:
+            base = "X2"
+            conf = min(conf, 50)
     
     # Double Chance Analysis
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
     
-    if dc_recommendations and total >= 8 and base != "12":
+    if dc_recommendations and total >= 10 and base != "12":
         best_dc = max(dc_recommendations, key=lambda x: x['value'])
         if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
             base = best_dc['pick']
@@ -663,10 +644,12 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
             for reason in dc_reasons:
                 st.markdown(f"- {reason}")
     
-    # Εμφάνιση πραγματικού ποσοστού ισοπαλίας
+    # Εμφάνιση πραγματικών ποσοστών
     if h_t > 0 and a_t > 0 and total >= 6:
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+        away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0
         st.markdown(f"**📊 Πραγματικό ποσοστό ισοπαλίας:** {real_draw_pct*100:.1f}%")
+        st.markdown(f"**📊 Φιλοξενούμενος ισοπαλίες εκτός:** {away_draw_pct*100:.1f}%")
     
     # Quick tips
     st.markdown("---")
@@ -761,14 +744,14 @@ st.markdown("---")
 c1, c2 = st.columns(2)
 with c1:
     st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες στα τελευταία 5 εντός έδρας")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες στα τελευταία 5 εντός έδρας")
-    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες στα τελευταία 5 εντός έδρας")
+    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες σε όλους τους εντός έδρας αγώνες")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες σε όλους τους εντός έδρας αγώνες")
+    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες σε όλους τους εντός έδρας αγώνες")
 with c2:
     st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες στα τελευταία 5 εκτός έδρας")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες στα τελευταία 5 εκτός έδρας")
-    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες στα τελευταία 5 εκτός έδρας")
+    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες σε όλους τους εκτός έδρας αγώνες")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες σε όλους τους εκτός έδρας αγώνες")
+    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες σε όλους τους εκτός έδρας αγώνες")
 
 # ==============================
 # MAIN BAR CHART
@@ -790,4 +773,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και πραγματική ισοπαλία")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και πραγματικά στατιστικά")
