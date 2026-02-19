@@ -52,6 +52,14 @@ st.markdown("""
 .dc-card:hover {
     transform: translateX(5px);
 }
+.safety-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+    text-align: left;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,7 +97,7 @@ def reset_all():
 # ==============================
 # DOUBLE CHANCE ANALYSIS FUNCTIONS
 # ==============================
-def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
+def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t):
     """
     Αναλύει αν αξίζει η διπλή ευκαιρία με έλεγχο απόδοσης
     """
@@ -107,14 +115,14 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     
     # Στατιστικά στοιχεία
     if h_t > 0:
-        home_losses = st_session.hl / h_t
-        home_draws = st_session.hd / h_t
+        home_losses = st.session_state.hl / h_t
+        home_draws = st.session_state.hd / h_t
     else:
         home_losses = home_draws = 0.5
     
     if a_t > 0:
-        away_losses = st_session.al / a_t
-        away_draws = st_session.ad / a_t
+        away_losses = st.session_state.al / a_t
+        away_draws = st.session_state.ad / a_t
     else:
         away_losses = away_draws = 0.5
     
@@ -388,7 +396,7 @@ with st.sidebar:
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
 # ==============================
-# CALCULATIONS ENGINE (ΒΕΛΤΙΩΜΕΝΟ)
+# CALCULATIONS ENGINE
 # ==============================
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
@@ -404,11 +412,11 @@ try:
 except:
     pm1 = pmX = pm2 = 0.33
 
-# ΒΕΛΤΙΩΣΗ 1: Μείωσε το max alpha στο 0.7 (70% βάρος στα stats, 30% στις αποδόσεις)
+# ΒΕΛΤΙΩΣΗ: Μείωσε το max alpha στο 0.7 (70% βάρος στα stats, 30% στις αποδόσεις)
 max_alpha = 0.7
-alpha = min(max_alpha, total / 20) if total > 0 else 0  # Πιο αργή σύγκλιση
+alpha = min(max_alpha, total / 20) if total > 0 else 0
 
-# ΒΕΛΤΙΩΣΗ 2: Πιο ήπιο loss penalty (0.4)
+# ΒΕΛΤΙΩΣΗ: Πιο ήπιο loss penalty (0.4)
 loss_penalty = 0.4
 
 # Υπολογισμός win ratios
@@ -421,7 +429,7 @@ away_points = st.session_state.aw * 3 + st.session_state.ad
 
 # Μπόνους για καλύτερη ομάδα (πιο ήπιο)
 if h_t >= 10 and a_t >= 10:
-    if home_points > away_points * 1.2:  # 20% καλύτερη
+    if home_points > away_points * 1.2:
         h_wr = h_wr * 1.1
         a_wr = a_wr * 0.95
     elif away_points > home_points * 1.2:
@@ -436,22 +444,16 @@ p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΔΙΟΡΘΩΜΕΝΟ)
+# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ
 # ==============================
 if h_t > 0 and a_t > 0 and total >= 10:
-    # Υπολογισμός πραγματικού ποσοστού ισοπαλίας
     real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+    away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
     
-    # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ισοπαλίες
-    away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25  # ΔΙΟΡΘΩΜΕΝΟ
-    
-    # ΑΝ Η ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΕΙΝΑΙ ΠΟΛΥ ΧΑΜΗΛΗ
     if real_draw_pct < 0.18 or away_draw_pct < 0.10:
-        # Μείωσε το pX
         reduction = 0.5 if real_draw_pct < 0.15 else 0.3
         pX = pX * (1 - reduction)
         
-        # Ανακατένειμε τις πιθανότητες στα p1 και p2
         remaining = 1 - pX
         if remaining > 0:
             p1 = p1 / (p1 + p2) * remaining
@@ -483,36 +485,78 @@ base_conf = int(real_probs[res] * 100)
 base = res
 
 # ==============================
-# CONFIDENCE & PROPOSAL FINALIZATION (ΔΙΟΡΘΩΜΕΝΟ)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ ΓΙΑ ΚΥΡΙΟ ΑΠΟΤΕΛΕΣΜΑ
 # ==============================
+prob_1X = p1 + pX
+prob_X2 = pX + p2
+prob_12 = p1 + p2
 
-# Αρχικοποίηση μεταβλητών
+implied_1X = 1 / (1/odd1 + 1/oddX) if odd1 > 1.0 and oddX > 1.0 else 0
+implied_X2 = 1 / (1/oddX + 1/odd2) if oddX > 1.0 and odd2 > 1.0 else 0
+implied_12 = 1 / (1/odd1 + 1/odd2) if odd1 > 1.0 and odd2 > 1.0 else 0
+
+double_chance_suggestion = ""
+double_chance_odds = 0
+double_chance_prob = 0
+
+# Αν το κύριο σημείο είναι 1
+if base == "1":
+    if prob_1X > 0.75 and implied_1X > 1.30:
+        double_chance_suggestion = "1X"
+        double_chance_odds = implied_1X
+        double_chance_prob = prob_1X * 100
+    elif prob_12 > 0.85 and implied_12 > 1.25:
+        double_chance_suggestion = "12"
+        double_chance_odds = implied_12
+        double_chance_prob = prob_12 * 100
+
+# Αν το κύριο σημείο είναι 2
+elif base == "2":
+    if prob_X2 > 0.75 and implied_X2 > 1.30:
+        double_chance_suggestion = "X2"
+        double_chance_odds = implied_X2
+        double_chance_prob = prob_X2 * 100
+    elif prob_12 > 0.85 and implied_12 > 1.25:
+        double_chance_suggestion = "12"
+        double_chance_odds = implied_12
+        double_chance_prob = prob_12 * 100
+
+# Αν το κύριο σημείο είναι Χ
+elif base == "X":
+    if prob_1X > 0.75 and implied_1X > 1.30:
+        double_chance_suggestion = "1X"
+        double_chance_odds = implied_1X
+        double_chance_prob = prob_1X * 100
+    elif prob_X2 > 0.75 and implied_X2 > 1.30:
+        double_chance_suggestion = "X2"
+        double_chance_odds = implied_X2
+        double_chance_prob = prob_X2 * 100
+
+# ==============================
+# CONFIDENCE & PROPOSAL FINALIZATION
+# ==============================
 proposal = ""
 warning = ""
 conf = 0
 color = "#95a5a6"
 
-# Υπολογισμός πιθανότητας 12
 prob_12 = p1 + p2
 
-# Έλεγχος στατιστικής επάρκειας
 if total < 6:
     proposal = "🚫 NO BET"
     warning = "⚠️ ΑΝΕΠΑΡΚΗ ΣΤΑΤΙΣΤΙΚΑ: Χρειάζονται τουλάχιστον 6 συνολικά παιχνίδια"
     conf = 0
     color = "#95a5a6"
 else:
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12 (ΔΙΟΡΘΩΜΕΝΟ)
     if h_t > 0 and a_t > 0:
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
-        away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25  # ΔΙΟΡΘΩΜΕΝΟ
+        away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
         
         if (real_draw_pct < 0.15 or away_draw_pct < 0.10) and total >= 10:
             base = "12"
             base_conf = int(prob_12 * 100)
             warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Ελάχιστες ισοπαλίες στα στατιστικά"
     
-    # Κανονικός υπολογισμός confidence
     if total < 10:
         confidence_multiplier = total / 10
         conf = int(base_conf * confidence_multiplier)
@@ -520,11 +564,10 @@ else:
         if not warning and total < 8:
             warning = "⚠️ ΜΕΙΩΜΕΝΗ ΑΞΙΟΠΙΣΤΙΑ: Λίγα στατιστικά δεδομένα"
     elif total < 15:
-        conf = min(base_conf, 70)  # Μείωσα από 75 σε 70
+        conf = min(base_conf, 70)
     else:
-        conf = min(base_conf, 85)  # Μείωσα από 90 σε 85
+        conf = min(base_conf, 85)
     
-    # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12
     if base != "12":
         if pX < 0.25 and res == "X":
             if p1 > p2:
@@ -537,18 +580,15 @@ else:
             base = "X2"
             conf = min(conf, 50)
     
-    # Double Chance Analysis
-    dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
+    dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
     
     if dc_recommendations and total >= 10 and base != "12":
         best_dc = max(dc_recommendations, key=lambda x: x['value'])
         if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
             base = best_dc['pick']
     
-    # Τελικό proposal
     proposal = f"{base} (VALUE)"
     
-    # Χρώμα confidence
     if conf >= 65:
         color = "#2ecc71"
     elif conf >= 45:
@@ -559,15 +599,39 @@ else:
 st.session_state.current_proposal = proposal
 
 # ==============================
-# UI OUTPUT
+# UI OUTPUT (ΜΕ ΠΡΟΣΘΗΚΗ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ)
 # ==============================
-st.markdown(f"""
-<div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.8</div>
-    <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
-    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
-</div>
-""", unsafe_allow_html=True)
+if double_chance_suggestion and double_chance_prob >= 75 and total >= 8:
+    st.markdown(f"""
+    <div class="result-card">
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.8</div>
+        <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
+        <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
+        <div class="safety-badge">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                <div>
+                    <span style="font-size:1.1rem; opacity:0.9;">🛡️ Εναλλακτική ασφαλείας</span><br>
+                    <span style="font-size:2.2rem; font-weight:bold;">{double_chance_suggestion}</span>
+                </div>
+                <div style="text-align:right;">
+                    <span style="font-size:1.5rem; font-weight:bold;">{double_chance_odds:.2f}</span><br>
+                    <span style="font-size:1.1rem;">{double_chance_prob:.1f}% πιθανότητα</span>
+                </div>
+            </div>
+            <div style="margin-top:10px; font-size:0.9rem; opacity:0.9;">
+                💡 Αν θέλεις μεγαλύτερη ασφάλεια, η διπλή ευκαιρία {double_chance_suggestion} έχει πολύ υψηλή πιθανότητα!
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown(f"""
+    <div class="result-card">
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.8</div>
+        <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal}</div>
+        <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 if warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
@@ -577,15 +641,13 @@ if warning:
 # ==============================
 with st.expander("🛡️ Double Chance Analysis", expanded=False):
     
-    # Ανάλυση double chance
-    dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
+    dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
     dc_reasons = get_double_chance_reason(p1, pX, p2, h_t, a_t)
     
     if dc_recommendations and total >= 6:
         st.markdown("### 🎯 Double Chance Opportunities")
         
         for rec in dc_recommendations:
-            # Χρωματισμός με βάση απόδοση
             if rec['odds'] >= 1.80:
                 bg_color = "#e8f5e9"
                 border_color = "#2ecc71"
@@ -596,7 +658,6 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                 bg_color = "#e3f2fd"
                 border_color = "#3498db"
             
-            # Value text
             if rec['value'] > 10:
                 value_text = f"🔥 +{rec['value']:.1f}%"
                 value_color = "#2ecc71"
@@ -607,7 +668,6 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                 value_text = f"⚖️ +{rec['value']:.1f}%"
                 value_color = "#95a5a6"
             
-            # Risk label
             risk_label = "🔴 Υψηλό" if rec['risk'] == 'high' else "🟡 Μέτριο" if rec['risk'] == 'medium' else "🟢 Χαμηλό"
             
             st.markdown(f"""
@@ -638,20 +698,17 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
         else:
             st.info("ℹ️ Δεν εντοπίστηκαν ευκαιρίες double chance με καλή απόδοση/πιθανότητα")
     
-    # Στατιστικοί λόγοι
     if dc_reasons and total >= 6:
         with st.expander("📊 Στατιστικά Στοιχεία", expanded=False):
             for reason in dc_reasons:
                 st.markdown(f"- {reason}")
     
-    # Εμφάνιση πραγματικών ποσοστών
     if h_t > 0 and a_t > 0 and total >= 6:
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0
         st.markdown(f"**📊 Πραγματικό ποσοστό ισοπαλίας:** {real_draw_pct*100:.1f}%")
         st.markdown(f"**📊 Φιλοξενούμενος ισοπαλίες εκτός:** {away_draw_pct*100:.1f}%")
     
-    # Quick tips
     st.markdown("---")
     st.markdown("""
     **💡 Double Chance Tips:**
@@ -670,7 +727,6 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
         explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
         metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
         
-        # Explanations σε δύο στήλες
         col1, col2 = st.columns(2)
         
         with col1:
@@ -704,7 +760,6 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 else:
                     st.markdown(f"⚖️ **Fair value**: {value_amount:.1f}% διαφορά")
         
-        # Πίνακας σύγκρισης
         st.markdown("---")
         st.markdown("### 📈 Αναλυτική Σύγκριση Πιθανοτήτων")
         
@@ -718,7 +773,6 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                        f"{p2*100 - 1/odd2*100:+.1f}%"]
         }
         
-        # Προσθήκη γραμμής για 12
         prob_12 = p1 + p2
         implied_12 = 1 / (1/odd1 + 1/odd2)
         comp_data['Σημείο'].append('12')
@@ -729,7 +783,6 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
         
         st.dataframe(comp_data, use_container_width=True, hide_index=True)
         
-        # Risk advice
         st.markdown("---")
         st.markdown("### 💡 Συμβουλή Διαχείρισης Ρίσκου")
         st.info(get_risk_advice(p1, pX, p2, conf, total))
@@ -773,4 +826,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και πραγματικά στατιστικά")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και εναλλακτική ασφαλείας")
