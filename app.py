@@ -87,7 +87,7 @@ def reset_all():
     st.session_state.current_proposal = ""
 
 # ==============================
-# DOUBLE CHANCE ANALYSIS FUNCTIONS (ΜΕ ΚΑΝΟΝΑ 12)
+# DOUBLE CHANCE ANALYSIS FUNCTIONS
 # ==============================
 def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     """
@@ -118,7 +118,7 @@ def analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     else:
         away_losses = away_draws = 0.5
     
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12 (ΟΧΙ ΙΣΟΠΑΛΙΑ)
+    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12
     if implied_12 > 0 and prob_12 > 0.85 and pX < 0.15:
         value = prob_12 - (1/implied_12)
         if value > 0.02:
@@ -219,12 +219,13 @@ def get_double_chance_reason(p1, pX, p2, h_t, a_t, st_session):
         if away_draws > 0.35:
             reasons.append(f"🤝 Φιλοξενούμενος: {away_draws*100:.0f}% ισοπαλίες")
     
-    if pX < 0.15:
-        reasons.append(f"⚡ ΠΟΛΥ ΛΙΓΕΣ ΙΣΟΠΑΛΙΕΣ ({pX*100:.0f}%) - Ιδανικό για 12")
-    elif pX < 0.20:
-        reasons.append(f"⚡ Λίγες ισοπαλίες ({pX*100:.0f}%) - Σκέψου 12")
-    elif pX > 0.35:
-        reasons.append(f"⚠️ Υψηλό ποσοστό ισοπαλιών ({pX*100:.0f}%) - Προσοχή")
+    # Υπολογισμός πραγματικής ισοπαλίας από στατιστικά
+    if h_t > 0 and a_t > 0:
+        real_draw_pct = (st_session.hd + st_session.ad) / (h_t + a_t)
+        if real_draw_pct < 0.15:
+            reasons.append(f"⚡ ΠΟΛΥ ΛΙΓΕΣ ΙΣΟΠΑΛΙΕΣ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ ({real_draw_pct*100:.1f}%) - Ιδανικό για 12")
+        elif real_draw_pct < 0.20:
+            reasons.append(f"⚡ Λίγες ισοπαλίες στα στατιστικά ({real_draw_pct*100:.1f}%) - Σκέψου 12")
     
     return reasons
 
@@ -236,6 +237,15 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     Δημιουργεί αναλυτική εξήγηση για την πρόταση
     """
     explanation_parts = []
+    
+    # Υπολογισμός πραγματικής ισοπαλίας από στατιστικά
+    if h_t > 0 and a_t > 0:
+        real_draw_pct = (st_session.hd + st_session.ad) / (h_t + a_t)
+        
+        if real_draw_pct < 0.15:
+            explanation_parts.append(f"⚡ **ΠΟΛΥ ΧΑΜΗΛΟ Χ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ**: {real_draw_pct*100:.1f}% - Ιδανικό για 12")
+        elif real_draw_pct < 0.20:
+            explanation_parts.append(f"⚡ **Χαμηλό Χ στα στατιστικά**: {real_draw_pct*100:.1f}% - Σκέψου 12")
     
     # 1. Ανάλυση στατιστικών
     if h_t > 0 and a_t > 0:
@@ -264,15 +274,13 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
         if implied_away < 40 and p2 > 0.5:
             explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd2:.2f} είναι υψηλή για {p2*100:.0f}% πιθανότητα")
     
-    # 3. Ανάλυση Χ (ισοπαλίας)
-    if oddX > 1.01:
+    # 3. Ανάλυση Χ (ισοπαλίας) - Σύγκριση με στατιστικά
+    if oddX > 1.01 and h_t > 0 and a_t > 0:
+        real_draw_pct = (st_session.hd + st_session.ad) / (h_t + a_t)
         implied_draw = 1/oddX * 100
-        if pX > 0.35:
-            explanation_parts.append(f"🤝 **Υψηλή πιθανότητα ισοπαλίας**: {pX*100:.0f}% - Προσοχή στο Χ")
-        elif pX < 0.15:
-            explanation_parts.append(f"⚡ **ΠΟΛΥ ΧΑΜΗΛΟ Χ**: {pX*100:.0f}% - Ιδανικό για 12")
-        elif pX < 0.20:
-            explanation_parts.append(f"⚡ **Χαμηλό Χ**: {pX*100:.0f}% - Σκέψου 12")
+        
+        if real_draw_pct < 0.15 and implied_draw > 25:
+            explanation_parts.append(f"⚠️ **ΠΑΓΙΔΑ ΣΤΟ Χ**: Η απόδοση {oddX:.2f} είναι πολύ μικρή για {real_draw_pct*100:.1f}% πραγματική πιθανότητα")
     
     # 4. Εξήγηση τελικής πρότασης
     proposal = st_session.get('current_proposal', '')
@@ -282,7 +290,7 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st_session):
     elif "X2" in proposal:
         explanation_parts.append("🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία X2 λόγω στατιστικών")
     elif "12" in proposal:
-        explanation_parts.append("🎯 **Καθόλου ισοπαλία**: Προτείνεται 12 λόγω πολύ χαμηλού ποσοστού Χ")
+        explanation_parts.append("🎯 **ΚΑΘΟΛΟΥ ΙΣΟΠΑΛΙΑ**: Προτείνεται 12 λόγω πολύ χαμηλού ποσοστού Χ στα στατιστικά")
     
     if proposal == "1 (VALUE)":
         explanation_parts.append("✅ **Καθαρό φαβορί**: Η γηπεδούχος υπερέχει στατιστικά")
@@ -434,6 +442,30 @@ p2 = alpha * a_wr + (1-alpha) * pm2
 p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
+# ==============================
+# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΚΡΙΣΙΜΗ ΠΡΟΣΘΗΚΗ!)
+# ==============================
+if h_t > 0 and a_t > 0 and total >= 8:
+    # Υπολογισμός πραγματικού ποσοστού ισοπαλίας από τα στατιστικά
+    real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+    
+    # ΑΝ Η ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΕΙΝΑΙ ΠΟΛΥ ΧΑΜΗΛΗ
+    if real_draw_pct < 0.15:
+        # Μείωσε δραστικά το pX
+        pX = pX * 0.2  # Μείωση 80%!
+        
+        # Ανακατένειμε τις πιθανότητες στα p1 και p2
+        remaining = 1 - pX
+        p1 = p1 / (p1 + p2) * remaining
+        p2 = p2 / (p1 + p2) * remaining
+    
+    elif real_draw_pct < 0.20:
+        # Μείωση 50% στο pX
+        pX = pX * 0.5
+        remaining = 1 - pX
+        p1 = p1 / (p1 + p2) * remaining
+        p2 = p2 / (p1 + p2) * remaining
+
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
 avg_draw = (real_h_draw + real_a_draw) / 2
@@ -460,7 +492,7 @@ base_conf = int(real_probs[res] * 100)
 base = res
 
 # ==============================
-# CONFIDENCE & PROPOSAL FINALIZATION (ΜΕ ΚΑΝΟΝΑ 12)
+# CONFIDENCE & PROPOSAL FINALIZATION
 # ==============================
 
 # Αρχικοποίηση μεταβλητών
@@ -479,41 +511,50 @@ if total < 6:
     conf = 0
     color = "#95a5a6"
 else:
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12 - ΠΡΩΤΑ ΑΠΟ ΟΛΑ
-    if prob_12 > 0.85 and pX < 0.15:
-        implied_12 = 1 / (1/odd1 + 1/odd2)
-        if implied_12 > 1.25:
+    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12 ΜΕ ΒΑΣΗ ΤΑ ΠΡΑΓΜΑΤΙΚΑ ΣΤΑΤΙΣΤΙΚΑ
+    if h_t > 0 and a_t > 0:
+        real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+        
+        # Αν η πραγματική ισοπαλία είναι <15% και έχουμε αρκετά δεδομένα
+        if real_draw_pct < 0.15 and total >= 8:
             base = "12"
             base_conf = int(prob_12 * 100)
+            warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Η ισοπαλία είναι μόνο {:.1f}% στα στατιστικά".format(real_draw_pct * 100)
+        # Αν η πραγματική ισοπαλία είναι <20%, το 12 είναι καλή εναλλακτική
+        elif real_draw_pct < 0.20 and total >= 10 and prob_12 > 0.80:
+            if base == "X" or base == "1" or base == "2":
+                base = "12"
+                base_conf = int(prob_12 * 100)
     
     # Κανονικός υπολογισμός confidence
     if total < 10:
         confidence_multiplier = total / 10
         conf = int(base_conf * confidence_multiplier)
         conf = min(conf, 60)
-        if not warning:
+        if not warning and total < 8:
             warning = "⚠️ ΜΕΙΩΜΕΝΗ ΑΞΙΟΠΙΣΤΙΑ: Λίγα στατιστικά δεδομένα"
     elif total < 15:
         conf = min(base_conf, 75)
     else:
         conf = min(base_conf, 90)
     
-    # Επιπλέον έλεγχοι
-    if pX < 0.30 and res == "X" and base != "12":
-        if p1 > p2:
-            base = "1X"
-        else:
-            base = "X2"
-        conf = min(conf, 50)
-    
-    if h_t >= 2 and st.session_state.hw == 0 and a_t >= 3 and st.session_state.al >= 2 and base != "12":
-        if pX > 0.30:
-            base = "X2"
-        else:
-            base = "12"
-        conf = min(conf, 55)
-        if not warning:
-            warning = "⚠️ ΑΜΦΙΡΡΟΠΟ ΜΑΤΣ: Και οι δύο ομάδες έχουν αδυναμίες"
+    # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12
+    if base != "12":
+        if pX < 0.30 and res == "X":
+            if p1 > p2:
+                base = "1X"
+            else:
+                base = "X2"
+            conf = min(conf, 50)
+        
+        if h_t >= 2 and st.session_state.hw == 0 and a_t >= 3 and st.session_state.al >= 2:
+            if pX > 0.30:
+                base = "X2"
+            else:
+                base = "12"
+            conf = min(conf, 55)
+            if not warning:
+                warning = "⚠️ ΑΜΦΙΡΡΟΠΟ ΜΑΤΣ: Και οι δύο ομάδες έχουν αδυναμίες"
     
     # Double Chance Analysis
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, st.session_state)
@@ -622,6 +663,11 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
             for reason in dc_reasons:
                 st.markdown(f"- {reason}")
     
+    # Εμφάνιση πραγματικού ποσοστού ισοπαλίας
+    if h_t > 0 and a_t > 0 and total >= 6:
+        real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+        st.markdown(f"**📊 Πραγματικό ποσοστό ισοπαλίας:** {real_draw_pct*100:.1f}%")
+    
     # Quick tips
     st.markdown("---")
     st.markdown("""
@@ -629,7 +675,7 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     - 🟢 **Χαμηλό ρίσκο**: Αποδόσεις 1.30-1.50, >75% πιθανότητα
     - 🟡 **Μέτριο ρίσκο**: Αποδόσεις 1.50-1.80, >70% πιθανότητα
     - 🔴 **Υψηλό ρίσκο**: Αποδόσεις 1.80+, >65% πιθανότητα + value
-    - ⚡ **12 (όχι ισοπαλία)**: Όταν pX < 15% και prob_12 > 85%
+    - ⚡ **12 (όχι ισοπαλία)**: Όταν η πραγματική ισοπαλία στα στατιστικά είναι <15%
     """)
 
 # ==============================
@@ -744,4 +790,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και ειδικό κανόνα για 12")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και πραγματική ισοπαλία")
