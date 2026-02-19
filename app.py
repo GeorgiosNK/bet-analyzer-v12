@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.2.6", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.2.8", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -658,4 +658,4 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.6 - Double Chance Analysis με έλεγχο απόδοσης")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης")
