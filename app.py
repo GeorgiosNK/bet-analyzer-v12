@@ -533,7 +533,7 @@ elif base == "X":
         double_chance_prob = prob_X2 * 100
 
 # ==============================
-# CONFIDENCE & PROPOSAL FINALIZATION (ΔΙΟΡΘΩΜΕΝΟ)
+# CONFIDENCE & PROPOSAL FINALIZATION (ΠΛΗΡΩΣ ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 
 # Αρχικοποίηση μεταβλητών
@@ -562,9 +562,19 @@ else:
             base_conf = int(prob_12 * 100)
             warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Ελάχιστες ισοπαλίες στα στατιστικά"
     
-    # Κανονικός υπολογισμός confidence
-    # ΠΡΩΤΑ υπολόγισε το base_conf από τα real_probs για το τρέχον base
-    base_conf = int(real_probs[base] * 100)
+    # Κανονικός υπολογισμός confidence - ΜΕ ΕΛΕΓΧΟ ΓΙΑ ΤΟ base
+    if base in real_probs:
+        base_conf = int(real_probs[base] * 100)
+    else:
+        # Αν το base είναι "12", "1X", "X2", υπολόγισε από τα επιμέρους
+        if base == "12":
+            base_conf = int((p1 + p2) * 100)
+        elif base == "1X":
+            base_conf = int((p1 + pX) * 100)
+        elif base == "X2":
+            base_conf = int((pX + p2) * 100)
+        else:
+            base_conf = 50
     
     if total < 10:
         confidence_multiplier = total / 10
@@ -578,11 +588,22 @@ else:
         conf = min(base_conf, 85)
     
     # ΣΗΜΑΝΤΙΚΟ: Το confidence δεν μπορεί να ξεπερνά την πραγματική πιθανότητα
-    actual_prob = int(real_probs[base] * 100)
+    if base in real_probs:
+        actual_prob = int(real_probs[base] * 100)
+    else:
+        if base == "12":
+            actual_prob = int((p1 + p2) * 100)
+        elif base == "1X":
+            actual_prob = int((p1 + pX) * 100)
+        elif base == "X2":
+            actual_prob = int((pX + p2) * 100)
+        else:
+            actual_prob = conf
+    
     conf = min(conf, actual_prob)
     
     # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12
-    if base != "12":
+    if base != "12" and base in real_probs:
         if pX < 0.25 and res == "X":
             if p1 > p2:
                 base = "1X"
@@ -597,7 +618,7 @@ else:
     # Double Chance Analysis
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
     
-    if dc_recommendations and total >= 10 and base != "12":
+    if dc_recommendations and total >= 10 and base != "12" and base in real_probs:
         best_dc = max(dc_recommendations, key=lambda x: x['value'])
         if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
             base = best_dc['pick']
