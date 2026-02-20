@@ -533,21 +533,26 @@ elif base == "X":
         double_chance_prob = prob_X2 * 100
 
 # ==============================
-# CONFIDENCE & PROPOSAL FINALIZATION
+# CONFIDENCE & PROPOSAL FINALIZATION (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
+
+# Αρχικοποίηση μεταβλητών
 proposal = ""
 warning = ""
 conf = 0
 color = "#95a5a6"
 
+# Υπολογισμός πιθανότητας 12
 prob_12 = p1 + p2
 
+# Έλεγχος στατιστικής επάρκειας
 if total < 6:
     proposal = "🚫 NO BET"
     warning = "⚠️ ΑΝΕΠΑΡΚΗ ΣΤΑΤΙΣΤΙΚΑ: Χρειάζονται τουλάχιστον 6 συνολικά παιχνίδια"
     conf = 0
     color = "#95a5a6"
 else:
+    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12
     if h_t > 0 and a_t > 0:
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
@@ -556,6 +561,10 @@ else:
             base = "12"
             base_conf = int(prob_12 * 100)
             warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Ελάχιστες ισοπαλίες στα στατιστικά"
+    
+    # Κανονικός υπολογισμός confidence
+    # ΠΡΩΤΑ υπολόγισε το base_conf από τα real_probs για το τρέχον base
+    base_conf = int(real_probs[base] * 100)
     
     if total < 10:
         confidence_multiplier = total / 10
@@ -568,6 +577,11 @@ else:
     else:
         conf = min(base_conf, 85)
     
+    # ΣΗΜΑΝΤΙΚΟ: Το confidence δεν μπορεί να ξεπερνά την πραγματική πιθανότητα
+    actual_prob = int(real_probs[base] * 100)
+    conf = min(conf, actual_prob)
+    
+    # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12
     if base != "12":
         if pX < 0.25 and res == "X":
             if p1 > p2:
@@ -580,6 +594,7 @@ else:
             base = "X2"
             conf = min(conf, 50)
     
+    # Double Chance Analysis
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
     
     if dc_recommendations and total >= 10 and base != "12":
@@ -587,8 +602,10 @@ else:
         if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
             base = best_dc['pick']
     
+    # Τελικό proposal
     proposal = f"{base} (VALUE)"
     
+    # Χρώμα confidence
     if conf >= 65:
         color = "#2ecc71"
     elif conf >= 45:
