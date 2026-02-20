@@ -451,7 +451,7 @@ if h_t > 0 and a_t > 0 and total >= 10:
     away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
     
     if real_draw_pct < 0.18 or away_draw_pct < 0.10:
-        reduction = 0.5 if real_draw_pct < 0.15 else 0.3
+        reduction = 0.35 if real_draw_pct < 0.15 else 0.20
         pX = pX * (1 - reduction)
         
         remaining = 1 - pX
