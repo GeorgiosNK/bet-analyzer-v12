@@ -485,7 +485,7 @@ base_conf = int(real_probs[res] * 100)
 base = res
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ ΓΙΑ ΚΥΡΙΟ ΑΠΟΤΕΛΕΣΜΑ
+# ΥΠΟΛΟΓΙΣΜΟΣ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ ΓΙΑ ΚΥΡΙΟ ΑΠΟΤΕΛΕΣΜΑ (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 prob_1X = p1 + pX
 prob_X2 = pX + p2
@@ -499,41 +499,43 @@ double_chance_suggestion = ""
 double_chance_odds = 0
 double_chance_prob = 0
 
-# Αν το κύριο σημείο είναι 1
-if base == "1":
-    if prob_1X > 0.75 and implied_1X > 1.30:
-        double_chance_suggestion = "1X"
-        double_chance_odds = implied_1X
-        double_chance_prob = prob_1X * 100
-    elif prob_12 > 0.85 and implied_12 > 1.25:
-        double_chance_suggestion = "12"
-        double_chance_odds = implied_12
-        double_chance_prob = prob_12 * 100
+# Μόνο αν το base είναι καθαρό σημείο (1, X, 2)
+if base in ["1", "X", "2"]:
+    # Αν το κύριο σημείο είναι 1
+    if base == "1":
+        if prob_1X > 0.70 and implied_1X > 1.30:  # Μείωσα το threshold από 75 σε 70
+            double_chance_suggestion = "1X"
+            double_chance_odds = implied_1X
+            double_chance_prob = prob_1X * 100
+        elif prob_12 > 0.80 and implied_12 > 1.25:  # Μείωσα το threshold από 85 σε 80
+            double_chance_suggestion = "12"
+            double_chance_odds = implied_12
+            double_chance_prob = prob_12 * 100
 
-# Αν το κύριο σημείο είναι 2
-elif base == "2":
-    if prob_X2 > 0.75 and implied_X2 > 1.30:
-        double_chance_suggestion = "X2"
-        double_chance_odds = implied_X2
-        double_chance_prob = prob_X2 * 100
-    elif prob_12 > 0.85 and implied_12 > 1.25:
-        double_chance_suggestion = "12"
-        double_chance_odds = implied_12
-        double_chance_prob = prob_12 * 100
+    # Αν το κύριο σημείο είναι 2
+    elif base == "2":
+        if prob_X2 > 0.70 and implied_X2 > 1.30:
+            double_chance_suggestion = "X2"
+            double_chance_odds = implied_X2
+            double_chance_prob = prob_X2 * 100
+        elif prob_12 > 0.80 and implied_12 > 1.25:
+            double_chance_suggestion = "12"
+            double_chance_odds = implied_12
+            double_chance_prob = prob_12 * 100
 
-# Αν το κύριο σημείο είναι Χ
-elif base == "X":
-    if prob_1X > 0.75 and implied_1X > 1.30:
-        double_chance_suggestion = "1X"
-        double_chance_odds = implied_1X
-        double_chance_prob = prob_1X * 100
-    elif prob_X2 > 0.75 and implied_X2 > 1.30:
-        double_chance_suggestion = "X2"
-        double_chance_odds = implied_X2
-        double_chance_prob = prob_X2 * 100
+    # Αν το κύριο σημείο είναι Χ
+    elif base == "X":
+        if prob_1X > 0.70 and implied_1X > 1.30:
+            double_chance_suggestion = "1X"
+            double_chance_odds = implied_1X
+            double_chance_prob = prob_1X * 100
+        elif prob_X2 > 0.70 and implied_X2 > 1.30:
+            double_chance_suggestion = "X2"
+            double_chance_odds = implied_X2
+            double_chance_prob = prob_X2 * 100
 
 # ==============================
-# CONFIDENCE & PROPOSAL FINALIZATION (ΠΛΗΡΩΣ ΔΙΟΡΘΩΜΕΝΟ)
+# CONFIDENCE & PROPOSAL FINALIZATION
 # ==============================
 
 # Αρχικοποίηση μεταβλητών
@@ -541,9 +543,6 @@ proposal = ""
 warning = ""
 conf = 0
 color = "#95a5a6"
-
-# Υπολογισμός πιθανότητας 12
-prob_12 = p1 + p2
 
 # Έλεγχος στατιστικής επάρκειας
 if total < 6:
@@ -602,7 +601,7 @@ else:
     
     conf = min(conf, actual_prob)
     
-    # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12
+    # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12 και είναι καθαρό σημείο
     if base != "12" and base in real_probs:
         if pX < 0.25 and res == "X":
             if p1 > p2:
@@ -615,7 +614,7 @@ else:
             base = "X2"
             conf = min(conf, 50)
     
-    # Double Chance Analysis
+    # Double Chance Analysis (μόνο για καθαρά σημεία)
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
     
     if dc_recommendations and total >= 10 and base != "12" and base in real_probs:
@@ -637,9 +636,14 @@ else:
 st.session_state.current_proposal = proposal
 
 # ==============================
-# UI OUTPUT (ΜΕ ΠΡΟΣΘΗΚΗ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ)
+# UI OUTPUT (ΜΕ ΔΙΟΡΘΩΜΕΝΟ ΕΛΕΓΧΟ ΓΙΑ ΔΙΠΛΗ ΕΥΚΑΙΡΙΑ)
 # ==============================
-if double_chance_suggestion and double_chance_prob >= 75 and total >= 8:
+# ΕΜΦΑΝΙΣΗ ΕΝΑΛΛΑΚΤΙΚΗΣ ΜΟΝΟ ΑΝ ΕΙΝΑΙ ΠΑΝΩ ΑΠΟ 70% ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ ΤΟ ΚΥΡΙΟ
+if (double_chance_suggestion and 
+    double_chance_prob >= 70 and 
+    double_chance_suggestion != base and
+    total >= 8):
+    
     st.markdown(f"""
     <div class="result-card">
         <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.8</div>
@@ -657,7 +661,7 @@ if double_chance_suggestion and double_chance_prob >= 75 and total >= 8:
                 </div>
             </div>
             <div style="margin-top:10px; font-size:0.9rem; opacity:0.9;">
-                💡 Αν θέλεις μεγαλύτερη ασφάλεια, η διπλή ευκαιρία {double_chance_suggestion} έχει πολύ υψηλή πιθανότητα!
+                💡 Αν θέλεις μεγαλύτερη ασφάλεια, η διπλή ευκαιρία {double_chance_suggestion} έχει υψηλή πιθανότητα!
             </div>
         </div>
     </div>
