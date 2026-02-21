@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.3", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.4", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -78,9 +78,8 @@ st.markdown("""
     line-height: 1.2;
 }
 .double-percent {
-    font-size: 1.6rem;  /* Μειώθηκε από 2rem σε 1.6rem (20% μικρότερο) */
+    font-size: 1.6rem;
     font-weight: 600;
-    color: #666;
     margin-left: 5px;
 }
 </style>
@@ -498,7 +497,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.3)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.4)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -516,6 +515,14 @@ main_point = sorted_stats[0][0]
 # Διπλή ευκαιρία = τα δύο μεγαλύτερα ποσοστά
 top_two = sorted_stats[0][0] + sorted_stats[1][0]
 top_two_prob = (sorted_stats[0][1] + sorted_stats[1][1]) * 100
+
+# Χρώμα για το ποσοστό της διπλής ευκαιρίας (ίδια λογική με το confidence)
+if top_two_prob >= 65:
+    dc_color = "#2ecc71"  # Πράσινο
+elif top_two_prob >= 45:
+    dc_color = "#f1c40f"  # Κίτρινο
+else:
+    dc_color = "#e74c3c"  # Κόκκινο
 
 # ==============================
 # CONFIDENCE & PROPOSAL FINALIZATION
@@ -572,10 +579,10 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.3</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.4</div>
         <div class="main-proposal">
             <span>{main_point}</span>
-            <span class="double-chance">({top_two} <span class="double-percent">{top_two_prob:.1f}%</span>)</span>
+            <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
         </div>
         <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
         <div style="margin-top:15px; font-family: monospace; font-size: 1rem; color: #555;">
@@ -586,7 +593,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.3</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.4</div>
         <div class="main-proposal">
             <span>{main_point}</span>
         </div>
@@ -787,4 +794,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.3 - Πρόταση με διπλή ευκαιρία και ποσοστό μέσα στην παρένθεση")
+st.caption("BetAnalyzer v17.3.4 - Πρόταση με διπλή ευκαιρία και χρωματιστό ποσοστό")
