@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.1", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.2", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -60,10 +60,27 @@ st.markdown("""
     margin-top: 15px;
     text-align: left;
 }
-.coverage-text {
-    font-size: 1.6rem;
+.main-proposal {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: #1e3c72;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.double-chance {
+    font-size: 3.5rem;
+    font-weight: 900;
     color: #cc0000;
-    font-weight: bold;
+    line-height: 1.2;
+}
+.double-percent {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #666;
     margin-left: 10px;
 }
 </style>
@@ -481,7 +498,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΝΕΟΣ ΤΡΟΠΟΣ ΥΠΟΛΟΓΙΣΜΟΥ ΠΡΟΤΑΣΗΣ (v17.3.1)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.2)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -498,9 +515,7 @@ main_point = sorted_stats[0][0]
 
 # Διπλή ευκαιρία = τα δύο μεγαλύτερα ποσοστά
 top_two = sorted_stats[0][0] + sorted_stats[1][0]
-
-# Δημιουργία πρότασης
-proposal_display = f"{main_point} <span class='coverage-text'>({top_two})</span>"
+top_two_prob = (sorted_stats[0][1] + sorted_stats[1][1]) * 100
 
 # ==============================
 # CONFIDENCE & PROPOSAL FINALIZATION
@@ -518,7 +533,9 @@ if total < 6:
     warning = "⚠️ ΑΝΕΠΑΡΚΗ ΣΤΑΤΙΣΤΙΚΑ: Χρειάζονται τουλάχιστον 6 συνολικά παιχνίδια"
     conf = 0
     color = "#95a5a6"
-    proposal_display = proposal
+    main_point = "🚫"
+    top_two = ""
+    top_two_prob = 0
 else:
     # Υπολογισμός confidence (από το μεγαλύτερο ποσοστό)
     base_conf = int(sorted_stats[0][1] * 100)
@@ -547,21 +564,36 @@ else:
     if real_draw_total < 0.15:
         warning = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15% στα στατιστικά. Προτείνεται κάλυψη 1-2."
 
-st.session_state.current_proposal = proposal_display
+st.session_state.current_proposal = f"{main_point} ({top_two})"
 
 # ==============================
 # UI OUTPUT
 # ==============================
-st.markdown(f"""
-<div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.1</div>
-    <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal_display}</div>
-    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
-    <div style="margin-top:15px; font-family: monospace; font-size: 1rem; color: #555;">
-        [MODEL]: 1: {p1*100:.1f}% | X: {pX*100:.1f}% | 2: {p2*100:.1f}%
+if total >= 6:
+    st.markdown(f"""
+    <div class="result-card">
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.2</div>
+        <div class="main-proposal">
+            <span>{main_point}</span>
+            <span class="double-chance">({top_two})</span>
+            <span class="double-percent">{top_two_prob:.1f}%</span>
+        </div>
+        <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
+        <div style="margin-top:15px; font-family: monospace; font-size: 1rem; color: #555;">
+            [MODEL]: 1: {p1*100:.1f}% | X: {pX*100:.1f}% | 2: {p2*100:.1f}%
+        </div>
     </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+else:
+    st.markdown(f"""
+    <div class="result-card">
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.2</div>
+        <div class="main-proposal">
+            <span>{main_point}</span>
+        </div>
+        <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 if warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
@@ -756,4 +788,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.1 - Πρόταση: Μεγαλύτερο ποσοστό μοντέλου + κάλυψη δύο μεγαλύτερων")
+st.caption("BetAnalyzer v17.3.2 - Πρόταση με διπλή ευκαιρία ίδιου μεγέθους και ποσοστό")
