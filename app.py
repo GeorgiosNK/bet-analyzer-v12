@@ -475,7 +475,7 @@ if h_t > 0 and a_t > 0 and total >= 8:
         st.session_state.away_special = "high_draws"
 
 # ==============================
-# ΔΙΟΡΘΩΣΗ: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΝΕΟ!)
+# ΔΙΟΡΘΩΣΗ: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΜΕΤΑΦΕΡΘΗΚΕ ΕΔΩ!)
 # ==============================
 if h_t > 0 and a_t > 0:
     home_draw_pct = st.session_state.hd / h_t
@@ -487,7 +487,6 @@ if h_t > 0 and a_t > 0:
         min_allowable_pX = home_draw_pct * 0.4
         
         if pX < min_allowable_pX:
-            old_pX = pX
             pX = min_allowable_pX
             # Ανακατανομή
             remaining = 1 - pX
@@ -495,14 +494,9 @@ if h_t > 0 and a_t > 0:
                 p1 = p1 / (p1 + p2) * remaining
                 p2 = p2 / (p1 + p2) * remaining
             
-            # Αν το base ήταν 12, ξανασκέψου το
-            if 'base' in locals() and base == "12":
-                if p1 > p2:
-                    base = "1X"
-                else:
-                    base = "X2"
-            
-            warning = "⚠️ Η γηπεδούχος έχει ισοπαλίες - Μην αγνοείτε το Χ"
+            st.session_state.draw_correction = True
+            if 'warning' not in locals():
+                warning = "⚠️ Η γηπεδούχος έχει ισοπαλίες - Μην αγνοείτε το Χ"
 
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
@@ -520,7 +514,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE
+# FINAL LOGIC ENGINE (ΤΩΡΑ ΜΕ ΔΙΟΡΘΩΜΕΝΑ p1, pX, p2)
 # ==============================
 real_probs = {'1': p1, 'X': pX, '2': p2}
 res = max(real_probs, key=real_probs.get)
@@ -585,7 +579,6 @@ if base in ["1", "X", "2"]:
 
 # Αρχικοποίηση μεταβλητών
 proposal = ""
-warning = ""
 conf = 0
 color = "#95a5a6"
 
