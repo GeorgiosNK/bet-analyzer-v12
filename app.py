@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.9", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.4.0", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -412,14 +412,27 @@ def sf(x):
         return 1.01
 
 # ==============================
-# SIDEBAR INPUTS
+# SIDEBAR INPUTS (ΟΛΑ ΜΑΖΙ ΣΤΟ CONTROL PANEL)
 # ==============================
 with st.sidebar:
     st.header("🏆 Control Panel")
     st.button("🧹 Clear Stats & Odds", on_click=reset_all, use_container_width=True)
+    
+    st.markdown("### 💰 Αποδόσεις")
     o1_i = st.text_input("Άσος (1)", key="o1")
     ox_i = st.text_input("Ισοπαλία (X)", key="ox")
     o2_i = st.text_input("Διπλό (2)", key="o2")
+    
+    st.markdown("---")
+    st.markdown("### 🏠 Γηπεδούχος (εντός έδρας)")
+    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες σε όλους τους εντός έδρας αγώνες")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες σε όλους τους εντός έδρας αγώνες")
+    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες σε όλους τους εντός έδρας αγώνες")
+    
+    st.markdown("### 🚀 Φιλοξενούμενος (εκτός έδρας)")
+    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες σε όλους τους εκτός έδρας αγώνες")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες σε όλους τους εκτός έδρας αγώνες")
+    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες σε όλους τους εκτός έδρας αγώνες")
 
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
@@ -503,7 +516,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.9)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.4.0)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -587,7 +600,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.9</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.4.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -601,7 +614,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.9</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.4.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
         </div>
@@ -692,8 +705,10 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                 st.markdown(f"- {reason}")
     
     if h_t > 0 and a_t > 0 and total >= 6:
+        model_draw_pct = pX * 100
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0
+        st.markdown(f"**📊 Ποσοστό Χ στο μοντέλο:** {model_draw_pct:.1f}%")
         st.markdown(f"**📊 Πραγματικό ποσοστό ισοπαλίας:** {real_draw_pct*100:.1f}%")
         st.markdown(f"**📊 Φιλοξενούμενος ισοπαλίες εκτός:** {away_draw_pct*100:.1f}%")
     
@@ -808,21 +823,6 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
 st.markdown("---")
 
 # ==============================
-# INPUT FIELDS
-# ==============================
-c1, c2 = st.columns(2)
-with c1:
-    st.subheader("🏠 Γηπεδούχος")
-    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες σε όλους τους εντός έδρας αγώνες")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες σε όλους τους εντός έδρας αγώνες")
-    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες σε όλους τους εντός έδρας αγώνες")
-with c2:
-    st.subheader("🚀 Φιλοξενούμενος")
-    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες σε όλους τους εκτός έδρας αγώνες")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες σε όλους τους εκτός έδρας αγώνες")
-    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες σε όλους τους εκτός έδρας αγώνες")
-
-# ==============================
 # MAIN BAR CHART
 # ==============================
 if total >= 6:
@@ -842,4 +842,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.9 - Base version με πλήρη συνέπεια στα μηνύματα")
+st.caption("BetAnalyzer v17.4.0 - Όλα τα στατιστικά στο Control Panel")
