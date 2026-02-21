@@ -842,4 +842,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.4.0 - Όλα τα στατιστικά στο Control Panel")
+st.caption("BetAnalyzer v17.4.0")
