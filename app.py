@@ -448,34 +448,7 @@ p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ
-# ==============================
-if h_t > 0 and a_t > 0 and total >= 8:
-    real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
-    away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
-    away_loss_pct = st.session_state.al / a_t if a_t > 0 else 0.25
-    
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ 1: Φιλοξενούμενος με πολύ λίγες ήττες (<15%)
-    if away_loss_pct < 0.15 and a_t >= 8:
-        p2 = p2 * 0.6  # Μείωση 40% στο διπλό
-        remaining = 1 - p2
-        if remaining > 0:
-            p1 = p1 / (p1 + pX) * remaining
-            pX = pX / (p1 + pX) * remaining
-        st.session_state.away_special = "low_losses"
-    
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ 2: Φιλοξενούμενος με πολλές ισοπαλίες (>40%)
-    if away_draw_pct > 0.40 and a_t >= 8:
-        pX = pX * 1.15  # Αύξηση 15% στο Χ
-        total_prob = p1 + pX + p2
-        if total_prob > 0:
-            p1 = p1 / total_prob
-            pX = pX / total_prob
-            p2 = p2 / total_prob
-        st.session_state.away_special = "high_draws"
-
-# ==============================
-# ΔΙΟΡΘΩΣΗ: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΜΕΤΑΦΕΡΘΗΚΕ ΕΔΩ!)
+# ΔΙΟΡΘΩΣΗ #1: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΠΡΩΤΗ!)
 # ==============================
 if h_t > 0 and a_t > 0:
     home_draw_pct = st.session_state.hd / h_t
@@ -495,8 +468,38 @@ if h_t > 0 and a_t > 0:
                 p2 = p2 / (p1 + p2) * remaining
             
             st.session_state.draw_correction = True
-            if 'warning' not in locals():
-                warning = "⚠️ Η γηπεδούχος έχει ισοπαλίες - Μην αγνοείτε το Χ"
+            warning = "⚠️ Η γηπεδούχος έχει ισοπαλίες - Μην αγνοείτε το Χ"
+
+# ==============================
+# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΜΕΤΑ τη διόρθωση)
+# ==============================
+if h_t > 0 and a_t > 0 and total >= 8:
+    real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+    away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
+    away_loss_pct = st.session_state.al / a_t if a_t > 0 else 0.25
+    
+    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ 1: Φιλοξενούμενος με πολύ λίγες ήττες (<15%)
+    if away_loss_pct < 0.15 and a_t >= 8:
+        p2 = p2 * 0.6
+        remaining = 1 - p2
+        if remaining > 0:
+            p1 = p1 / (p1 + pX) * remaining
+            pX = pX / (p1 + pX) * remaining
+        st.session_state.away_special = "low_losses"
+        if 'warning' not in locals():
+            warning = "⚠️ ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ ΜΕ ΕΛΑΧΙΣΤΕΣ ΗΤΤΕΣ ΕΚΤΟΣ - Δύσκολα χάνει!"
+    
+    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ 2: Φιλοξενούμενος με πολλές ισοπαλίες (>40%)
+    if away_draw_pct > 0.40 and a_t >= 8:
+        pX = pX * 1.15
+        total_prob = p1 + pX + p2
+        if total_prob > 0:
+            p1 = p1 / total_prob
+            pX = pX / total_prob
+            p2 = p2 / total_prob
+        st.session_state.away_special = "high_draws"
+        if 'warning' not in locals():
+            warning = "⚠️ ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ ΜΕ ΠΟΛΛΕΣ ΙΣΟΠΑΛΙΕΣ ΕΚΤΟΣ - Το Χ έχει αξία!"
 
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
@@ -514,7 +517,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# FINAL LOGIC ENGINE (ΤΩΡΑ ΜΕ ΔΙΟΡΘΩΜΕΝΑ p1, pX, p2)
+# FINAL LOGIC ENGINE
 # ==============================
 real_probs = {'1': p1, 'X': pX, '2': p2}
 res = max(real_probs, key=real_probs.get)
@@ -662,13 +665,6 @@ else:
         best_dc = max(dc_recommendations, key=lambda x: x['value'])
         if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
             base = best_dc['pick']
-    
-    # Αν υπάρχει ειδικός κανόνας για φιλοξενούμενο, πρόσθεσε warning
-    if hasattr(st.session_state, 'away_special'):
-        if st.session_state.away_special == "low_losses":
-            warning = "⚠️ ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ ΜΕ ΕΛΑΧΙΣΤΕΣ ΗΤΤΕΣ ΕΚΤΟΣ - Δύσκολα χάνει!"
-        elif st.session_state.away_special == "high_draws":
-            warning = "⚠️ ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ ΜΕ ΠΟΛΛΕΣ ΙΣΟΠΑΛΙΕΣ ΕΚΤΟΣ - Το Χ έχει αξία!"
     
     # Τελικό proposal
     proposal = f"{base} (VALUE)"
