@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.0", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.1", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -304,11 +304,11 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t):
     elif "12" in proposal:
         explanation_parts.append("🎯 **ΚΑΘΟΛΟΥ ΙΣΟΠΑΛΙΑ**: Προτείνεται 12 λόγω πολύ χαμηλού ποσοστού Χ στα στατιστικά")
     
-    if proposal == "1 (VALUE)":
+    if "1" in proposal and "VALUE" not in proposal:
         explanation_parts.append("✅ **Καθαρό φαβορί**: Η γηπεδούχος υπερέχει στατιστικά")
-    elif proposal == "2 (VALUE)":
+    elif "2" in proposal and "VALUE" not in proposal:
         explanation_parts.append("✅ **Καθαρό φαβορί**: Η φιλοξενούμενη υπερέχει στατιστικά")
-    elif proposal == "X (VALUE)":
+    elif "X" in proposal and "VALUE" not in proposal:
         explanation_parts.append("⚠️ **Ισοπαλία**: Οι ομάδες είναι πολύ κοντά ή υπάρχει αμυντική τακτική")
     
     return explanation_parts
@@ -481,30 +481,22 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΝΕΟΣ ΤΡΟΠΟΣ ΥΠΟΛΟΓΙΣΜΟΥ ΠΡΟΤΑΣΗΣ (v17.3.0)
+# ΝΕΟΣ ΤΡΟΠΟΣ ΥΠΟΛΟΓΙΣΜΟΥ ΠΡΟΤΑΣΗΣ (v17.3.1)
 # ==============================
-# Υπολογισμός Real Stats από τα αρχικά δεδομένα
-if h_t > 0 and a_t > 0:
-    real_1 = st.session_state.hw / h_t
-    real_X = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
-    real_2 = st.session_state.aw / a_t
-else:
-    real_1 = real_X = real_2 = 0
-
-# Δημιουργία λίστας με τα real stats
+# Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
-    ("1", real_1),
-    ("X", real_X),
-    ("2", real_2)
+    ("1", p1),
+    ("X", pX),
+    ("2", p2)
 ]
 
 # Ταξινόμηση με βάση το ποσοστό (από μεγαλύτερο σε μικρότερο)
 sorted_stats = sorted(stats_list, key=lambda x: x[1], reverse=True)
 
-# Καθαρό σημείο = το μεγαλύτερο real stat
+# Καθαρό σημείο = το μεγαλύτερο ποσοστό
 main_point = sorted_stats[0][0]
 
-# Διπλή ευκαιρία = τα δύο μεγαλύτερα real stats
+# Διπλή ευκαιρία = τα δύο μεγαλύτερα ποσοστά
 top_two = sorted_stats[0][0] + sorted_stats[1][0]
 
 # Δημιουργία πρότασης
@@ -528,13 +520,8 @@ if total < 6:
     color = "#95a5a6"
     proposal_display = proposal
 else:
-    # Υπολογισμός confidence (από τα real probs για το main_point)
-    if main_point == "1":
-        base_conf = int(real_1 * 100)
-    elif main_point == "X":
-        base_conf = int(real_X * 100)
-    else:
-        base_conf = int(real_2 * 100)
+    # Υπολογισμός confidence (από το μεγαλύτερο ποσοστό)
+    base_conf = int(sorted_stats[0][1] * 100)
     
     if total < 10:
         confidence_multiplier = total / 10
@@ -556,8 +543,9 @@ else:
         color = "#e74c3c"
     
     # Προσθήκη warning αν το Χ είναι πολύ χαμηλό
-    if real_X < 0.15:
-        warning = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15%. Προτείνεται κάλυψη 1-2."
+    real_draw_total = (st.session_state.hd + st.session_state.ad) / (h_t + a_t) if (h_t + a_t) > 0 else 0
+    if real_draw_total < 0.15:
+        warning = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15% στα στατιστικά. Προτείνεται κάλυψη 1-2."
 
 st.session_state.current_proposal = proposal_display
 
@@ -566,11 +554,11 @@ st.session_state.current_proposal = proposal_display
 # ==============================
 st.markdown(f"""
 <div class="result-card">
-    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.0</div>
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.1</div>
     <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal_display}</div>
     <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
     <div style="margin-top:15px; font-family: monospace; font-size: 1rem; color: #555;">
-        [STATS]: 1: {real_1*100:.1f}% | X: {real_X*100:.1f}% | 2: {real_2*100:.1f}%
+        [MODEL]: 1: {p1*100:.1f}% | X: {pX*100:.1f}% | 2: {p2*100:.1f}%
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -768,4 +756,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.0 - Πρόταση: Μεγαλύτερο real stat + κάλυψη δύο μεγαλύτερων")
+st.caption("BetAnalyzer v17.3.1 - Πρόταση: Μεγαλύτερο ποσοστό μοντέλου + κάλυψη δύο μεγαλύτερων")
