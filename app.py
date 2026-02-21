@@ -90,78 +90,49 @@ with st.sidebar:
     st.number_input("Ήττες", 0, 100, key="al")
 
 # ==============================
-# LOGIC ENGINE
+# LOGIC ENGINE (CORRECTED v17.2.9)
 # ==============================
-h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
-a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
-total = h_t + a_t
-
-display_proposal = "📊 Αναμένοντας δεδομένα..."
-conf = 0
-color = "#95a5a6"
-warning_msg = ""
-value_text = ""
-real_1, real_X, real_2 = 0, 0, 0
-
 if total >= 6:
     # Υπολογισμός Real Stats
     real_1 = st.session_state.hw / h_t if h_t > 0 else 0
     real_2 = st.session_state.aw / a_t if a_t > 0 else 0
-    # Το Real Stat X υπολογίζεται επί του συνόλου των αγώνων
     real_X = (st.session_state.hd + st.session_state.ad) / total if total > 0 else 0
 
-    # Υπολογισμός Implied Probabilities από odds
-    implied_1 = 1 / o1
-    implied_X = 1 / ox
-    implied_2 = 1 / o2
-    implied_total = implied_1 + implied_X + implied_2
+    # Υπολογισμός Implied Probabilities & Value
+    implied_total = (1/o1) + (1/ox) + (1/o2)
+    norm_implied_1 = (1/o1) / implied_total * 100
+    norm_implied_X = (1/ox) / implied_total * 100
+    norm_implied_2 = (1/o2) / implied_total * 100
     
-    # Κανονικοποίηση
-    norm_implied_1 = implied_1 / implied_total * 100
-    norm_implied_X = implied_X / implied_total * 100
-    norm_implied_2 = implied_2 / implied_total * 100
-
-    # Υπολογισμός Value
-    value_1 = real_1 * 100 - norm_implied_1
-    value_X = real_X * 100 - norm_implied_X
-    value_2 = real_2 * 100 - norm_implied_2
+    values = {"1": real_1 * 100 - norm_implied_1, "X": real_X * 100 - norm_implied_X, "2": real_2 * 100 - norm_implied_2}
     
-    # Εύρεση best value
-    values = {"1": value_1, "X": value_X, "2": value_2}
-    best_value = max(values, key=values.get)
-    
-    if values[best_value] > 5:
-        value_text = f"✅ **Value detected**: +{values[best_value]:.1f}% στο {best_value}"
-    elif values[best_value] < -5:
-        value_text = f"❌ **Overpriced**: {values[best_value]:.1f}% στο {best_value}"
-
-    # Εύρεση κυρίαρχου σημείου
+    # 1. Βρίσκουμε το κυρίαρχο σημείο βάσει Real Stats
     probs = {"1": real_1, "X": real_X, "2": real_2}
     base_point = max(probs, key=probs.get)
     
-    # Κανόνας Real Stat 1 & 2 > 45% ή Χ < 15% -> Αυτόματη πρόταση 1-2
+    # 2. Χτίζουμε την κύρια πρόταση
+    main_text = base_point
+    if values[base_point] > 0:
+        main_text += " (VALUE)"
+    
+    # 3. Προσθέτουμε την κάλυψη σε παρένθεση (Κανόνας X < 15% ή 1&2 > 45%)
+    coverage_html = ""
     is_12_rule = (real_1 > 0.45 and real_2 > 0.45) or (real_X < 0.15)
     
-    # Διαμόρφωση πρότασης με παρένθεση
     if is_12_rule:
-        display_proposal = f"{base_point} (VALUE) <span class='coverage-text'>(1-2)</span>"
+        coverage_html = f" <span class='coverage-text'>(1-2)</span>"
         warning_msg = "🎯 NO DRAW ALERT: Στατιστικά πολύ χαμηλό Χ. Προτίμηση στο 1-2."
     elif real_X > 0.40:
-        display_proposal = f"X (VALUE)"
+        # Αν το Χ είναι κυρίαρχο λόγω του κανόνα >40% (Οδηγία 10ης Ιανουαρίου)
+        main_text = "X (VALUE)"
         warning_msg = "🤝 DRAW STRATEGY: Το Real Stat X είναι > 40%."
-    else:
-        # Έλεγχος για κλασικές καλύψεις
-        if base_point == "1" and real_X > 0.25:
-            display_proposal = f"1 (VALUE) <span class='coverage-text'>(1X)</span>"
-            if not warning_msg:
-                warning_msg = "🛡️ Υψηλό ποσοστό ισοπαλιών - Προτείνεται κάλυψη 1X"
-        elif base_point == "2" and real_X > 0.25:
-            display_proposal = f"2 (VALUE) <span class='coverage-text'>(X2)</span>"
-            if not warning_msg:
-                warning_msg = "🛡️ Υψηλό ποσοστό ισοπαλιών - Προτείνεται κάλυψη X2"
-        else:
-            display_proposal = f"{base_point} (VALUE)"
+    elif base_point == "1" and real_X > 0.25:
+        coverage_html = f" <span class='coverage-text'>(1X)</span>"
+    elif base_point == "2" and real_X > 0.25:
+        coverage_html = f" <span class='coverage-text'>(X2)</span>"
 
+    display_proposal = f"{main_text}{coverage_html}"
+    
     conf = int(probs[base_point] * 100)
     color = "#2ecc71" if conf >= 65 else "#f1c40f" if conf >= 45 else "#e74c3c"
 
