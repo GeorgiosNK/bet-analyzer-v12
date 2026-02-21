@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.5", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.6", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -381,7 +381,7 @@ def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
     
     return metrics
 
-def get_risk_advice(p1, pX, p2, conf, total, top_two_prob):
+def get_risk_advice(p1, pX, p2, conf, total, top_two_prob, main_point, top_two):
     """
     Επιστρέφει συμβουλές διαχείρισης ρίσκου
     """
@@ -390,17 +390,17 @@ def get_risk_advice(p1, pX, p2, conf, total, top_two_prob):
     
     # Αν η διπλή ευκαιρία έχει πολύ υψηλό ποσοστό
     if top_two_prob >= 80:
-        return "🟢 **ΠΟΛΥ ΥΨΗΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία έχει >80% - Ιδανικό για safe bet"
+        return f"🟢 **ΠΟΛΥ ΥΨΗΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία {top_two} έχει {top_two_prob:.1f}% - Ιδανικό για safe bet, ενώ το κύριο σημείο {main_point} έχει {conf}% confidence"
     elif top_two_prob >= 70:
-        return "🟡 **ΚΑΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία έχει >70% - Κατάλληλο για normal bet"
+        return f"🟡 **ΚΑΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία {top_two} έχει {top_two_prob:.1f}% - Κατάλληλο για normal bet, το κύριο σημείο {main_point} έχει {conf}% confidence"
     
     # Αλλιώς βασιζόμαστε στο confidence του κυρίου σημείου
     if conf >= 70:
-        return "🟢 **Υψηλή εμπιστοσύνη στο κύριο σημείο**: Κατάλληλο για κανονικό ποντάρισμα"
+        return f"🟢 **Υψηλή εμπιστοσύνη στο κύριο σημείο**: Το {main_point} έχει {conf}% confidence - Κατάλληλο για κανονικό ποντάρισμα"
     elif conf >= 50:
-        return "🟡 **Μέτρια εμπιστοσύνη στο κύριο σημείο**: Μείωση ποντάρισματος ή προτίμηση στη διπλή ευκαιρία"
+        return f"🟡 **Μέτρια εμπιστοσύνη στο κύριο σημείο**: Το {main_point} έχει {conf}% confidence - Μείωση ποντάρισματος ή προτίμηση στη διπλή ευκαιρία {top_two} ({top_two_prob:.1f}%)"
     else:
-        return "🔴 **Χαμηλή εμπιστοσύνη στο κύριο σημείο**: Μικρό ποντάρισμα ή αποφυγή"
+        return f"🔴 **Χαμηλή εμπιστοσύνη στο κύριο σημείο**: Το {main_point} έχει μόνο {conf}% confidence - Μικρό ποντάρισμα ή αποφυγή"
 
 # ==============================
 # SAFE FUNCTION FOR ODDS
@@ -505,7 +505,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.5)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.6)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -574,10 +574,10 @@ else:
     else:
         color = "#e74c3c"
     
-    # Προσθήκη warning αν το Χ είναι πολύ χαμηλό
+    # Προσθήκη στατιστικής παρατήρησης αν το Χ είναι πολύ χαμηλό
     real_draw_total = (st.session_state.hd + st.session_state.ad) / (h_t + a_t) if (h_t + a_t) > 0 else 0
     if real_draw_total < 0.15:
-        warning = f"🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15% στα στατιστικά. Προτείνεται κάλυψη {top_two}."
+        warning = f"📊 ΣΤΑΤΙΣΤΙΚΗ ΠΑΡΑΤΗΡΗΣΗ: Η ισοπαλία εμφανίζεται μόνο {real_draw_total*100:.1f}% στα στατιστικά. Η πρόταση {top_two} βασίζεται στα δύο επικρατέστερα αποτελέσματα."
 
 st.session_state.current_proposal = f"{main_point} ({top_two})"
 
@@ -587,7 +587,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.5</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.6</div>
         <div class="main-proposal">
             <span>{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -601,7 +601,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.5</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.6</div>
         <div class="main-proposal">
             <span>{main_point}</span>
         </div>
@@ -801,7 +801,7 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
         
         st.markdown("---")
         st.markdown("### 💡 Συμβουλή Διαχείρισης Ρίσκου")
-        st.info(get_risk_advice(p1, pX, p2, conf, total, top_two_prob))
+        st.info(get_risk_advice(p1, pX, p2, conf, total, top_two_prob, main_point, top_two))
     else:
         st.info("ℹ️ Ανεπαρκή δεδομένα για αναλυτική εξήγηση (χρειάζονται ≥6 συνολικά παιχνίδια)")
 
@@ -842,4 +842,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.5 - Πλήρης ανάλυση με διπλή ευκαιρία και χρωματιστό ποσοστό")
+st.caption("BetAnalyzer v17.3.6 - Πλήρης ανάλυση με διπλή ευκαιρία και στατιστικές παρατηρήσεις")
