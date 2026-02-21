@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.2.9", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.0", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -481,84 +481,34 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΑΓΜΑΤΙΚΟΥ Χ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΓΙΑ ΤΟΝ ΚΑΝΟΝΑ 1-2)
+# ΝΕΟΣ ΤΡΟΠΟΣ ΥΠΟΛΟΓΙΣΜΟΥ ΠΡΟΤΑΣΗΣ (v17.3.0)
 # ==============================
+# Υπολογισμός Real Stats από τα αρχικά δεδομένα
 if h_t > 0 and a_t > 0:
-    real_draw_total = (st.session_state.hd + st.session_state.ad) / (h_t + a_t) if (h_t + a_t) > 0 else 0
+    real_1 = st.session_state.hw / h_t
+    real_X = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+    real_2 = st.session_state.aw / a_t
 else:
-    real_draw_total = 0
+    real_1 = real_X = real_2 = 0
 
-# ==============================
-# FINAL LOGIC ENGINE
-# ==============================
-real_probs = {'1': p1, 'X': pX, '2': p2}
-res = max(real_probs, key=real_probs.get)
-odd_check = odd1 if res == "1" else oddX if res == "X" else odd2
-base_conf = int(real_probs[res] * 100)
+# Δημιουργία λίστας με τα real stats
+stats_list = [
+    ("1", real_1),
+    ("X", real_X),
+    ("2", real_2)
+]
 
-base = res
+# Ταξινόμηση με βάση το ποσοστό (από μεγαλύτερο σε μικρότερο)
+sorted_stats = sorted(stats_list, key=lambda x: x[1], reverse=True)
 
-# ==============================
-# ΕΦΑΡΜΟΓΗ ΚΑΝΟΝΑ 1-2 ΟΤΑΝ ΤΟ Χ < 15%
-# ==============================
-if real_draw_total < 0.15 and total >= 6:
-    # Ανεξάρτητα από το base, πρότεινε 1-2
-    proposal_display = f"{base} (VALUE) <span class='coverage-text'>(1-2)</span>"
-    warning = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15%. Προτείνεται κάλυψη 1-2."
-    base_for_proposal = base  # Κρατάμε το base για το confidence
-else:
-    proposal_display = f"{base} (VALUE)"
-    warning = ""
+# Καθαρό σημείο = το μεγαλύτερο real stat
+main_point = sorted_stats[0][0]
 
-# ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ ΓΙΑ ΚΥΡΙΟ ΑΠΟΤΕΛΕΣΜΑ
-# ==============================
-prob_1X = p1 + pX
-prob_X2 = pX + p2
-prob_12 = p1 + p2
+# Διπλή ευκαιρία = τα δύο μεγαλύτερα real stats
+top_two = sorted_stats[0][0] + sorted_stats[1][0]
 
-implied_1X = 1 / (1/odd1 + 1/oddX) if odd1 > 1.0 and oddX > 1.0 else 0
-implied_X2 = 1 / (1/oddX + 1/odd2) if oddX > 1.0 and odd2 > 1.0 else 0
-implied_12 = 1 / (1/odd1 + 1/odd2) if odd1 > 1.0 and odd2 > 1.0 else 0
-
-double_chance_suggestion = ""
-double_chance_odds = 0
-double_chance_prob = 0
-
-# Μόνο αν το base είναι καθαρό σημείο (1, X, 2)
-if base in ["1", "X", "2"]:
-    # Αν το κύριο σημείο είναι 1
-    if base == "1":
-        if prob_1X > 0.70 and implied_1X > 1.30:
-            double_chance_suggestion = "1X"
-            double_chance_odds = implied_1X
-            double_chance_prob = prob_1X * 100
-        elif prob_12 > 0.80 and implied_12 > 1.25:
-            double_chance_suggestion = "12"
-            double_chance_odds = implied_12
-            double_chance_prob = prob_12 * 100
-
-    # Αν το κύριο σημείο είναι 2
-    elif base == "2":
-        if prob_X2 > 0.70 and implied_X2 > 1.30:
-            double_chance_suggestion = "X2"
-            double_chance_odds = implied_X2
-            double_chance_prob = prob_X2 * 100
-        elif prob_12 > 0.80 and implied_12 > 1.25:
-            double_chance_suggestion = "12"
-            double_chance_odds = implied_12
-            double_chance_prob = prob_12 * 100
-
-    # Αν το κύριο σημείο είναι Χ
-    elif base == "X":
-        if prob_1X > 0.70 and implied_1X > 1.30:
-            double_chance_suggestion = "1X"
-            double_chance_odds = implied_1X
-            double_chance_prob = prob_1X * 100
-        elif prob_X2 > 0.70 and implied_X2 > 1.30:
-            double_chance_suggestion = "X2"
-            double_chance_odds = implied_X2
-            double_chance_prob = prob_X2 * 100
+# Δημιουργία πρότασης
+proposal_display = f"{main_point} <span class='coverage-text'>({top_two})</span>"
 
 # ==============================
 # CONFIDENCE & PROPOSAL FINALIZATION
@@ -566,6 +516,7 @@ if base in ["1", "X", "2"]:
 
 # Αρχικοποίηση μεταβλητών
 proposal = ""
+warning = ""
 conf = 0
 color = "#95a5a6"
 
@@ -577,31 +528,13 @@ if total < 6:
     color = "#95a5a6"
     proposal_display = proposal
 else:
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ ΓΙΑ 12
-    if h_t > 0 and a_t > 0:
-        real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
-        away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
-        
-        if (real_draw_pct < 0.15 or away_draw_pct < 0.10) and total >= 10:
-            base = "12"
-            base_conf = int(prob_12 * 100)
-            if not warning:
-                warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Ελάχιστες ισοπαλίες στα στατιστικά"
-            proposal_display = f"12 (VALUE)"
-    
-    # Κανονικός υπολογισμός confidence - ΜΕ ΕΛΕΓΧΟ ΓΙΑ ΤΟ base
-    if base in real_probs:
-        base_conf = int(real_probs[base] * 100)
+    # Υπολογισμός confidence (από τα real probs για το main_point)
+    if main_point == "1":
+        base_conf = int(real_1 * 100)
+    elif main_point == "X":
+        base_conf = int(real_X * 100)
     else:
-        # Αν το base είναι "12", "1X", "X2", υπολόγισε από τα επιμέρους
-        if base == "12":
-            base_conf = int((p1 + p2) * 100)
-        elif base == "1X":
-            base_conf = int((p1 + pX) * 100)
-        elif base == "X2":
-            base_conf = int((pX + p2) * 100)
-        else:
-            base_conf = 50
+        base_conf = int(real_2 * 100)
     
     if total < 10:
         confidence_multiplier = total / 10
@@ -614,51 +547,6 @@ else:
     else:
         conf = min(base_conf, 85)
     
-    # ΣΗΜΑΝΤΙΚΟ: Το confidence δεν μπορεί να ξεπερνά την πραγματική πιθανότητα
-    if base in real_probs:
-        actual_prob = int(real_probs[base] * 100)
-    else:
-        if base == "12":
-            actual_prob = int((p1 + p2) * 100)
-        elif base == "1X":
-            actual_prob = int((p1 + pX) * 100)
-        elif base == "X2":
-            actual_prob = int((pX + p2) * 100)
-        else:
-            actual_prob = conf
-    
-    conf = min(conf, actual_prob)
-    
-    # Επιπλέον έλεγχοι μόνο αν δεν έχει ήδη οριστεί ως 12
-    if base != "12" and base in real_probs:
-        if pX < 0.25 and res == "X":
-            if p1 > p2:
-                base = "1X"
-            else:
-                base = "X2"
-            conf = min(conf, 45)
-        
-        if h_t >= 5 and st.session_state.hw == 0 and a_t >= 5 and st.session_state.al >= 3:
-            base = "X2"
-            conf = min(conf, 50)
-    
-    # Double Chance Analysis (μόνο για καθαρά σημεία)
-    dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
-    
-    if dc_recommendations and total >= 10 and base != "12" and base in real_probs:
-        best_dc = max(dc_recommendations, key=lambda x: x['value'])
-        if best_dc['value'] > 8 and best_dc['prob'] > 75 and best_dc['odds'] >= 1.40:
-            base = best_dc['pick']
-            proposal_display = f"{base} (VALUE)"
-    
-    # Αν δεν έχει οριστεί ήδη proposal_display από τον κανόνα 1-2
-    if 'proposal_display' not in locals() or proposal_display == "":
-        if real_draw_total < 0.15 and total >= 6:
-            proposal_display = f"{base} (VALUE) <span class='coverage-text'>(1-2)</span>"
-            warning = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15%. Προτείνεται κάλυψη 1-2."
-        else:
-            proposal_display = f"{base} (VALUE)"
-    
     # Χρώμα confidence
     if conf >= 65:
         color = "#2ecc71"
@@ -666,48 +554,26 @@ else:
         color = "#f1c40f"
     else:
         color = "#e74c3c"
+    
+    # Προσθήκη warning αν το Χ είναι πολύ χαμηλό
+    if real_X < 0.15:
+        warning = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15%. Προτείνεται κάλυψη 1-2."
 
 st.session_state.current_proposal = proposal_display
 
 # ==============================
 # UI OUTPUT
 # ==============================
-# ΕΜΦΑΝΙΣΗ ΕΝΑΛΛΑΚΤΙΚΗΣ ΜΟΝΟ ΑΝ ΕΙΝΑΙ ΠΑΝΩ ΑΠΟ 70% ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ ΤΟ ΚΥΡΙΟ
-if (double_chance_suggestion and 
-    double_chance_prob >= 70 and 
-    double_chance_suggestion != base and
-    total >= 8):
-    
-    st.markdown(f"""
-    <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.9</div>
-        <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal_display}</div>
-        <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
-        <div class="safety-badge">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                <div>
-                    <span style="font-size:1.1rem; opacity:0.9;">🛡️ Εναλλακτική ασφαλείας</span><br>
-                    <span style="font-size:2.2rem; font-weight:bold;">{double_chance_suggestion}</span>
-                </div>
-                <div style="text-align:right;">
-                    <span style="font-size:1.5rem; font-weight:bold;">{double_chance_odds:.2f}</span><br>
-                    <span style="font-size:1.1rem;">{double_chance_prob:.1f}% πιθανότητα</span>
-                </div>
-            </div>
-            <div style="margin-top:10px; font-size:0.9rem; opacity:0.9;">
-                💡 Αν θέλεις μεγαλύτερη ασφάλεια, η διπλή ευκαιρία {double_chance_suggestion} έχει υψηλή πιθανότητα!
-            </div>
-        </div>
+st.markdown(f"""
+<div class="result-card">
+    <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.0</div>
+    <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal_display}</div>
+    <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
+    <div style="margin-top:15px; font-family: monospace; font-size: 1rem; color: #555;">
+        [STATS]: 1: {real_1*100:.1f}% | X: {real_X*100:.1f}% | 2: {real_2*100:.1f}%
     </div>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown(f"""
-    <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.2.9</div>
-        <div style="font-size:3.5rem;font-weight:900;color:#1e3c72;line-height:1;">{proposal_display}</div>
-        <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
-    </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
 if warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
@@ -902,4 +768,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.9 - Double Chance Analysis με κανόνα 1-2 όταν Χ < 15%")
+st.caption("BetAnalyzer v17.3.0 - Πρόταση: Μεγαλύτερο real stat + κάλυψη δύο μεγαλύτερων")
