@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.8", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.9", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -503,7 +503,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.8)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.9)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -572,10 +572,12 @@ else:
     else:
         color = "#e74c3c"
     
-    # Προσθήκη στατιστικής παρατήρησης αν το Χ είναι πολύ χαμηλό
-    real_draw_total = (st.session_state.hd + st.session_state.ad) / (h_t + a_t) if (h_t + a_t) > 0 else 0
-    if real_draw_total < 0.15:
-        warning = f"📊 ΣΤΑΤΙΣΤΙΚΗ ΠΑΡΑΤΗΡΗΣΗ: Η ισοπαλία εμφανίζεται μόνο {real_draw_total*100:.1f}% στα στατιστικά. Η πρόταση {top_two} βασίζεται στα δύο επικρατέστερα αποτελέσματα."
+    # Προσθήκη στατιστικής παρατήρησης αν το Χ είναι πολύ χαμηλό (βάσει μοντέλου)
+    model_draw_pct = pX * 100
+    if model_draw_pct < 15:
+        warning = f"📊 ΣΤΑΤΙΣΤΙΚΗ ΠΑΡΑΤΗΡΗΣΗ: Η ισοπαλία είναι πολύ χαμηλή στο μοντέλο ({model_draw_pct:.1f}%). Η πρόταση {top_two} βασίζεται στα δύο επικρατέστερα αποτελέσματα."
+    elif model_draw_pct < 20:
+        warning = f"📊 ΣΤΑΤΙΣΤΙΚΗ ΠΑΡΑΤΗΡΗΣΗ: Η ισοπαλία είναι στο {model_draw_pct:.1f}% στο μοντέλο. Η πρόταση {top_two} επιλέχθηκε ως κάλυψη."
 
 st.session_state.current_proposal = f"{main_point} ({top_two})"
 
@@ -585,7 +587,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.8</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.9</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -599,7 +601,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.8</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.9</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
         </div>
@@ -840,4 +842,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.8 - Πλήρης ανάλυση με οπτική ιεράρχηση")
+st.caption("BetAnalyzer v17.3.9 - Base version με πλήρη συνέπεια στα μηνύματα")
