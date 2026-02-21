@@ -448,7 +448,7 @@ p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΔΙΟΡΘΩΣΗ #1: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΠΡΩΤΗ!)
+# ΔΙΟΡΘΩΣΗ #1: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΑΜΕΣΩΣ ΜΕΤΑ!)
 # ==============================
 if h_t > 0 and a_t > 0:
     home_draw_pct = st.session_state.hd / h_t
@@ -460,10 +460,11 @@ if h_t > 0 and a_t > 0:
         min_allowable_pX = home_draw_pct * 0.4
         
         if pX < min_allowable_pX:
+            old_pX = pX
             pX = min_allowable_pX
-            # Ανακατανομή
+            # Ανακατανομή - κράτα την ίδια αναλογία p1/p2
             remaining = 1 - pX
-            if remaining > 0:
+            if remaining > 0 and (p1 + p2) > 0:
                 p1 = p1 / (p1 + p2) * remaining
                 p2 = p2 / (p1 + p2) * remaining
             
@@ -482,7 +483,7 @@ if h_t > 0 and a_t > 0 and total >= 8:
     if away_loss_pct < 0.15 and a_t >= 8:
         p2 = p2 * 0.6
         remaining = 1 - p2
-        if remaining > 0:
+        if remaining > 0 and (p1 + pX) > 0:
             p1 = p1 / (p1 + pX) * remaining
             pX = pX / (p1 + pX) * remaining
         st.session_state.away_special = "low_losses"
