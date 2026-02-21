@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.2", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.3", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -74,14 +74,14 @@ st.markdown("""
 .double-chance {
     font-size: 3.5rem;
     font-weight: 900;
-    color: #cc0000;
+    color: #1e3c72;
     line-height: 1.2;
 }
 .double-percent {
-    font-size: 2rem;
+    font-size: 1.6rem;  /* Μειώθηκε από 2rem σε 1.6rem (20% μικρότερο) */
     font-weight: 600;
     color: #666;
-    margin-left: 10px;
+    margin-left: 5px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -498,7 +498,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.2)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.3)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -572,11 +572,10 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.2</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.3</div>
         <div class="main-proposal">
             <span>{main_point}</span>
-            <span class="double-chance">({top_two})</span>
-            <span class="double-percent">{top_two_prob:.1f}%</span>
+            <span class="double-chance">({top_two} <span class="double-percent">{top_two_prob:.1f}%</span>)</span>
         </div>
         <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
         <div style="margin-top:15px; font-family: monospace; font-size: 1rem; color: #555;">
@@ -587,7 +586,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.2</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.3</div>
         <div class="main-proposal">
             <span>{main_point}</span>
         </div>
@@ -788,4 +787,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.2 - Πρόταση με διπλή ευκαιρία ίδιου μεγέθους και ποσοστό")
+st.caption("BetAnalyzer v17.3.3 - Πρόταση με διπλή ευκαιρία και ποσοστό μέσα στην παρένθεση")
