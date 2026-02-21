@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.6", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.7", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -256,7 +256,7 @@ def get_double_chance_reason(p1, pX, p2, h_t, a_t):
 # ==============================
 # FUNCTIONS FOR EXPLANATIONS
 # ==============================
-def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t):
+def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, main_point, top_two, sorted_stats):
     """
     Δημιουργεί αναλυτική εξήγηση για την πρόταση
     """
@@ -267,9 +267,9 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t):
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         
         if real_draw_pct < 0.15:
-            explanation_parts.append(f"⚡ **ΠΟΛΥ ΧΑΜΗΛΟ Χ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ**: {real_draw_pct*100:.1f}% - Ιδανικό για 12")
+            explanation_parts.append(f"⚡ **ΠΟΛΥ ΧΑΜΗΛΟ Χ ΣΤΑ ΣΤΑΤΙΣΤΙΚΑ**: {real_draw_pct*100:.1f}% - Η πρόταση {top_two} βασίζεται στα δύο επικρατέστερα αποτελέσματα")
         elif real_draw_pct < 0.20:
-            explanation_parts.append(f"⚡ **Χαμηλό Χ στα στατιστικά**: {real_draw_pct*100:.1f}% - Σκέψου 12")
+            explanation_parts.append(f"⚡ **Χαμηλό Χ στα στατιστικά**: {real_draw_pct*100:.1f}% - Η πρόταση {top_two} επιλέχθηκε ως κάλυψη")
     
     # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ισοπαλίες
     if a_t >= 10 and st.session_state.ad / a_t < 0.10:
@@ -302,30 +302,33 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t):
         if implied_away < 40 and p2 > 0.5:
             explanation_parts.append(f"💰 **Value bet**: Η απόδοση {odd2:.2f} είναι υψηλή για {p2*100:.0f}% πιθανότητα")
     
-    # 3. Ανάλυση Χ (ισοπαλίας) - Σύγκριση με στατιστικά
+    # 3. Ανάλυση Χ (ισοπαλίας) - Σύγκριση με στατιστικά (διορθωμένο)
     if oddX > 1.01 and h_t > 0 and a_t > 0:
-        real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         implied_draw = 1/oddX * 100
+        model_draw = pX * 100
         
-        if real_draw_pct < 0.15 and implied_draw > 25:
-            explanation_parts.append(f"⚠️ **ΠΑΓΙΔΑ ΣΤΟ Χ**: Η απόδοση {oddX:.2f} είναι πολύ μικρή για {real_draw_pct*100:.1f}% πραγματική πιθανότητα")
+        if abs(model_draw - implied_draw) > 10:
+            if model_draw < implied_draw:
+                explanation_parts.append(f"⚠️ **ΠΑΓΙΔΑ ΣΤΟ Χ**: Η απόδοση {oddX:.2f} υποτιμά την πιθανότητα του Χ (μοντέλο: {model_draw:.1f}%, bookie: {implied_draw:.1f}%)")
+            else:
+                explanation_parts.append(f"💰 **VALUE ΣΤΟ Χ**: Η απόδοση {oddX:.2f} είναι υψηλή για {model_draw:.1f}% πραγματική πιθανότητα")
     
     # 4. Εξήγηση τελικής πρότασης
     proposal = st.session_state.get('current_proposal', '')
     
     if "1X" in proposal:
-        explanation_parts.append("🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία 1X λόγω στατιστικών")
+        explanation_parts.append(f"🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία 1X ως κάλυψη των δύο επικρατέστερων αποτελεσμάτων ({main_point} και Χ)")
     elif "X2" in proposal:
-        explanation_parts.append("🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία X2 λόγω στατιστικών")
+        explanation_parts.append(f"🛡️ **Κάλυψη**: Προτείνεται διπλή ευκαιρία X2 ως κάλυψη των δύο επικρατέστερων αποτελεσμάτων (Χ και 2)")
     elif "12" in proposal:
-        explanation_parts.append("🎯 **ΚΑΘΟΛΟΥ ΙΣΟΠΑΛΙΑ**: Προτείνεται 12 λόγω πολύ χαμηλού ποσοστού Χ στα στατιστικά")
+        explanation_parts.append(f"🎯 **ΚΑΘΟΛΟΥ ΙΣΟΠΑΛΙΑ**: Προτείνεται 12 ως κάλυψη των δύο επικρατέστερων αποτελεσμάτων (1 και 2)")
     
     if "1" in proposal and "VALUE" not in proposal:
-        explanation_parts.append("✅ **Καθαρό φαβορί**: Η γηπεδούχος υπερέχει στατιστικά")
+        explanation_parts.append(f"✅ **Καθαρό φαβορί**: Το {main_point} επιλέχθηκε ως κύριο σημείο (μεγαλύτερο ποσοστό: {sorted_stats[0][1]*100:.1f}%)")
     elif "2" in proposal and "VALUE" not in proposal:
-        explanation_parts.append("✅ **Καθαρό φαβορί**: Η φιλοξενούμενη υπερέχει στατιστικά")
+        explanation_parts.append(f"✅ **Καθαρό φαβορί**: Το {main_point} επιλέχθηκε ως κύριο σημείο (μεγαλύτερο ποσοστό: {sorted_stats[0][1]*100:.1f}%)")
     elif "X" in proposal and "VALUE" not in proposal:
-        explanation_parts.append("⚠️ **Ισοπαλία**: Οι ομάδες είναι πολύ κοντά ή υπάρχει αμυντική τακτική")
+        explanation_parts.append(f"⚠️ **Ισοπαλία**: Το {main_point} επιλέχθηκε ως κύριο σημείο (μεγαλύτερο ποσοστό: {sorted_stats[0][1]*100:.1f}%)")
     
     return explanation_parts
 
@@ -505,7 +508,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.6)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.7)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -587,7 +590,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.6</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.7</div>
         <div class="main-proposal">
             <span>{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -601,7 +604,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.6</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.7</div>
         <div class="main-proposal">
             <span>{main_point}</span>
         </div>
@@ -712,7 +715,7 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
 with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
     
     if total >= 6:
-        explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
+        explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, main_point, top_two, sorted_stats)
         metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
         
         col1, col2 = st.columns(2)
@@ -842,4 +845,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.6 - Πλήρης ανάλυση με διπλή ευκαιρία και στατιστικές παρατηρήσεις")
+st.caption("BetAnalyzer v17.3.7 - Πλήρης ανάλυση με διορθωμένες επεξηγήσεις")
