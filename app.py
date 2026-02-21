@@ -222,10 +222,10 @@ def get_double_chance_reason(p1, pX, p2, h_t, a_t):
     if a_t > 0:
         away_losses = st.session_state.al / a_t
         away_draws = st.session_state.ad / a_t
-        if away_losses < 0.15:
-            reasons.append(f"🚀 Φιλοξενούμενος: ΜΟΝΟ {away_losses*100:.1f}% ήττες εκτός έδρας!")
-        if away_draws > 0.40:
-            reasons.append(f"🤝 Φιλοξενούμενος: {away_draws*100:.1f}% ισοπαλίες εκτός έδρας!")
+        if away_losses < 0.20:
+            reasons.append(f"🚀 Φιλοξενούμενος: Μόνο {away_losses*100:.0f}% ήττες εκτός έδρας")
+        if away_draws > 0.35:
+            reasons.append(f"🤝 Φιλοξενούμενος: {away_draws*100:.0f}% ισοπαλίες")
         if away_draws < 0.10 and a_t >= 10:
             reasons.append(f"⚡ Φιλοξενούμενος: ΜΟΝΟ {away_draws*100:.1f}% ισοπαλίες εκτός έδρας!")
     
@@ -249,13 +249,9 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t):
         elif real_draw_pct < 0.20:
             explanation_parts.append(f"⚡ **Χαμηλό Χ στα στατιστικά**: {real_draw_pct*100:.1f}% - Σκέψου 12")
     
-    # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ήττες
-    if a_t >= 10 and st.session_state.al / a_t < 0.15:
-        explanation_parts.append(f"🛡️ **ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ**: Μόνο {(st.session_state.al / a_t)*100:.1f}% ήττες εκτός έδρας - ΔΥΣΚΟΛΑ ΧΑΝΕΙ!")
-    
-    # Ειδικός έλεγχος για φιλοξενούμενο με πολλές ισοπαλίες
-    if a_t >= 10 and st.session_state.ad / a_t > 0.40:
-        explanation_parts.append(f"🤝 **ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ**: {(st.session_state.ad / a_t)*100:.1f}% ισοπαλίες εκτός έδρας - Το Χ έχει αξία!")
+    # Ειδικός έλεγχος για φιλοξενούμενο με πολύ λίγες ισοπαλίες
+    if a_t >= 10 and st.session_state.ad / a_t < 0.10:
+        explanation_parts.append(f"🚨 **ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ**: Μόνο {(st.session_state.ad / a_t)*100:.1f}% ισοπαλίες εκτός έδρας!")
     
     # 1. Ανάλυση στατιστικών
     if h_t > 0 and a_t > 0:
@@ -448,66 +444,20 @@ p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΔΙΟΡΘΩΣΗ: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΕΝΙΣΧΥΜΕΝΗ)
+# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ
 # ==============================
-if h_t > 0 and a_t > 0:
-    home_draw_pct = st.session_state.hd / h_t
-    away_draw_pct = st.session_state.ad / a_t
-    away_loss_pct = st.session_state.al / a_t if a_t > 0 else 0
-    
-    # Αν η φιλοξενούμενη έχει 0% ισοπαλίες
-    if away_draw_pct < 0.05:
-        # Το Χ πρέπει να είναι τουλάχιστον το 70% των ισοπαλιών της γηπεδούχου
-        min_allowable_pX = home_draw_pct * 0.7
-        
-        # Αν η φιλοξενούμενη έχει πολλές ήττες (>50%), ανέβασε κι άλλο το Χ
-        if away_loss_pct > 0.50:
-            min_allowable_pX = home_draw_pct * 0.9  # 90% των ισοπαλιών της γηπεδούχου
-        
-        # Αποθήκευσε την παλιά τιμή για σύγκριση
-        old_pX = pX
-        
-        if pX < min_allowable_pX:
-            pX = min_allowable_pX
-            # Ανακατανομή - κράτα την ίδια αναλογία p1/p2
-            remaining = 1 - pX
-            if remaining > 0 and (p1 + p2) > 0:
-                p1 = p1 / (p1 + p2) * remaining
-                p2 = p2 / (p1 + p2) * remaining
-            
-            st.session_state.draw_correction = True
-            warning = f"⚠️ Διόρθωση Χ: από {old_pX*100:.1f}% σε {pX*100:.1f}% (βάσει ισοπαλιών γηπεδούχου)"
-
-# ==============================
-# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΜΕΤΑ τη διόρθωση)
-# ==============================
-if h_t > 0 and a_t > 0 and total >= 8:
+if h_t > 0 and a_t > 0 and total >= 10:
     real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
     away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
-    away_loss_pct = st.session_state.al / a_t if a_t > 0 else 0.25
     
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ 1: Φιλοξενούμενος με πολύ λίγες ήττες (<15%)
-    if away_loss_pct < 0.15 and a_t >= 8:
-        p2 = p2 * 0.6
-        remaining = 1 - p2
-        if remaining > 0 and (p1 + pX) > 0:
-            p1 = p1 / (p1 + pX) * remaining
-            pX = pX / (p1 + pX) * remaining
-        st.session_state.away_special = "low_losses"
-        if 'warning' not in locals():
-            warning = "⚠️ ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ ΜΕ ΕΛΑΧΙΣΤΕΣ ΗΤΤΕΣ ΕΚΤΟΣ - Δύσκολα χάνει!"
-    
-    # ΕΙΔΙΚΟΣ ΚΑΝΟΝΑΣ 2: Φιλοξενούμενος με πολλές ισοπαλίες (>40%)
-    if away_draw_pct > 0.40 and a_t >= 8:
-        pX = pX * 1.15
-        total_prob = p1 + pX + p2
-        if total_prob > 0:
-            p1 = p1 / total_prob
-            pX = pX / total_prob
-            p2 = p2 / total_prob
-        st.session_state.away_special = "high_draws"
-        if 'warning' not in locals():
-            warning = "⚠️ ΦΙΛΟΞΕΝΟΥΜΕΝΟΣ ΜΕ ΠΟΛΛΕΣ ΙΣΟΠΑΛΙΕΣ ΕΚΤΟΣ - Το Χ έχει αξία!"
+    if real_draw_pct < 0.18 or away_draw_pct < 0.10:
+        reduction = 0.35 if real_draw_pct < 0.15 else 0.20
+        pX = pX * (1 - reduction)
+        
+        remaining = 1 - pX
+        if remaining > 0:
+            p1 = p1 / (p1 + p2) * remaining
+            p2 = p2 / (p1 + p2) * remaining
 
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
@@ -535,7 +485,7 @@ base_conf = int(real_probs[res] * 100)
 base = res
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ ΓΙΑ ΚΥΡΙΟ ΑΠΟΤΕΛΕΣΜΑ
+# ΥΠΟΛΟΓΙΣΜΟΣ ΔΙΠΛΗΣ ΕΥΚΑΙΡΙΑΣ ΓΙΑ ΚΥΡΙΟ ΑΠΟΤΕΛΕΣΜΑ (ΔΙΟΡΘΩΜΕΝΟ)
 # ==============================
 prob_1X = p1 + pX
 prob_X2 = pX + p2
@@ -553,11 +503,11 @@ double_chance_prob = 0
 if base in ["1", "X", "2"]:
     # Αν το κύριο σημείο είναι 1
     if base == "1":
-        if prob_1X > 0.70 and implied_1X > 1.30:
+        if prob_1X > 0.70 and implied_1X > 1.30:  # Μείωσα το threshold από 75 σε 70
             double_chance_suggestion = "1X"
             double_chance_odds = implied_1X
             double_chance_prob = prob_1X * 100
-        elif prob_12 > 0.80 and implied_12 > 1.25:
+        elif prob_12 > 0.80 and implied_12 > 1.25:  # Μείωσα το threshold από 85 σε 80
             double_chance_suggestion = "12"
             double_chance_odds = implied_12
             double_chance_prob = prob_12 * 100
@@ -590,6 +540,7 @@ if base in ["1", "X", "2"]:
 
 # Αρχικοποίηση μεταβλητών
 proposal = ""
+warning = ""
 conf = 0
 color = "#95a5a6"
 
@@ -606,12 +557,9 @@ else:
         away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
         
         if (real_draw_pct < 0.15 or away_draw_pct < 0.10) and total >= 10:
-            # Πριν προτείνεις 12, έλεγξε αν η γηπεδούχος έχει ισοπαλίες
-            home_draw_pct = st.session_state.hd / h_t if h_t > 0 else 0
-            if home_draw_pct < 0.15:  # Μόνο αν και η γηπεδούχος έχει λίγες ισοπαλίες
-                base = "12"
-                base_conf = int(prob_12 * 100)
-                warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Ελάχιστες ισοπαλίες στα στατιστικά"
+            base = "12"
+            base_conf = int(prob_12 * 100)
+            warning = "✅ ΠΡΟΤΕΙΝΕΤΑΙ 12: Ελάχιστες ισοπαλίες στα στατιστικά"
     
     # Κανονικός υπολογισμός confidence - ΜΕ ΕΛΕΓΧΟ ΓΙΑ ΤΟ base
     if base in real_probs:
@@ -688,7 +636,7 @@ else:
 st.session_state.current_proposal = proposal
 
 # ==============================
-# UI OUTPUT
+# UI OUTPUT (ΜΕ ΔΙΟΡΘΩΜΕΝΟ ΕΛΕΓΧΟ ΓΙΑ ΔΙΠΛΗ ΕΥΚΑΙΡΙΑ)
 # ==============================
 # ΕΜΦΑΝΙΣΗ ΕΝΑΛΛΑΚΤΙΚΗΣ ΜΟΝΟ ΑΝ ΕΙΝΑΙ ΠΑΝΩ ΑΠΟ 70% ΚΑΙ ΔΕΝ ΕΙΝΑΙ ΤΟ ΙΔΙΟ ΜΕ ΤΟ ΚΥΡΙΟ
 if (double_chance_suggestion and 
@@ -738,13 +686,10 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
     dc_reasons = get_double_chance_reason(p1, pX, p2, h_t, a_t)
     
-    # Φιλτράρισμα για να μην εμφανίζεται η ίδια επιλογή με την κύρια πρόταση
-    filtered_dc = [rec for rec in dc_recommendations if rec['pick'] != base]
-    
-    if filtered_dc and total >= 6:
+    if dc_recommendations and total >= 6:
         st.markdown("### 🎯 Double Chance Opportunities")
         
-        for rec in filtered_dc:
+        for rec in dc_recommendations:
             if rec['odds'] >= 1.80:
                 bg_color = "#e8f5e9"
                 border_color = "#2ecc71"
@@ -803,12 +748,8 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     if h_t > 0 and a_t > 0 and total >= 6:
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0
-        away_loss_pct = st.session_state.al / a_t if a_t > 0 else 0
-        home_draw_pct = st.session_state.hd / h_t if h_t > 0 else 0
         st.markdown(f"**📊 Πραγματικό ποσοστό ισοπαλίας:** {real_draw_pct*100:.1f}%")
-        st.markdown(f"**📊 Γηπεδούχος ισοπαλίες εντός:** {home_draw_pct*100:.1f}%")
         st.markdown(f"**📊 Φιλοξενούμενος ισοπαλίες εκτός:** {away_draw_pct*100:.1f}%")
-        st.markdown(f"**📊 Φιλοξενούμενος ήττες εκτός:** {away_loss_pct*100:.1f}%")
     
     st.markdown("---")
     st.markdown("""
@@ -927,4 +868,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και ενισχυμένη διόρθωση ισοπαλιών")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και εναλλακτική ασφαλείας")
