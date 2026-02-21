@@ -448,16 +448,21 @@ p1, p2 = max(0.10, p1), max(0.10, p2)
 pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΔΙΟΡΘΩΣΗ: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΔΟΚΙΜΑΣΜΕΝΗ)
+# ΔΙΟΡΘΩΣΗ: ΜΗΝ ΑΓΝΟΕΙΣ ΤΙΣ ΙΣΟΠΑΛΙΕΣ ΤΗΣ ΓΗΠΕΔΟΥΧΟΥ (ΕΝΙΣΧΥΜΕΝΗ)
 # ==============================
 if h_t > 0 and a_t > 0:
     home_draw_pct = st.session_state.hd / h_t
     away_draw_pct = st.session_state.ad / a_t
+    away_loss_pct = st.session_state.al / a_t if a_t > 0 else 0
     
-    # Αν η φιλοξενούμενη έχει <10% ισοπαλίες και η γηπεδούχος >10%
-    if away_draw_pct < 0.10 and home_draw_pct > 0.10:
-        # Το Χ πρέπει να είναι τουλάχιστον το 60% των ισοπαλιών της γηπεδούχου
-        min_allowable_pX = home_draw_pct * 0.6
+    # Αν η φιλοξενούμενη έχει 0% ισοπαλίες
+    if away_draw_pct < 0.05:
+        # Το Χ πρέπει να είναι τουλάχιστον το 70% των ισοπαλιών της γηπεδούχου
+        min_allowable_pX = home_draw_pct * 0.7
+        
+        # Αν η φιλοξενούμενη έχει πολλές ήττες (>50%), ανέβασε κι άλλο το Χ
+        if away_loss_pct > 0.50:
+            min_allowable_pX = home_draw_pct * 0.9  # 90% των ισοπαλιών της γηπεδούχου
         
         # Αποθήκευσε την παλιά τιμή για σύγκριση
         old_pX = pX
@@ -922,4 +927,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και διόρθωση ισοπαλιών")
+st.caption("BetAnalyzer v17.2.8 - Double Chance Analysis με έλεγχο απόδοσης και ενισχυμένη διόρθωση ισοπαλιών")
