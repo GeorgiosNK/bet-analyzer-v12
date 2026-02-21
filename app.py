@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.3.4", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="BetAnalyzer v17.3.5", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -381,18 +381,26 @@ def calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2):
     
     return metrics
 
-def get_risk_advice(p1, pX, p2, conf, total):
+def get_risk_advice(p1, pX, p2, conf, total, top_two_prob):
     """
     Επιστρέφει συμβουλές διαχείρισης ρίσκου
     """
     if total < 8:
         return "🔴 **ΑΝΕΠΑΡΚΗ ΔΕΔΟΜΕΝΑ**: Λιγότερα από 8 συνολικά παιχνίδια - Αποφυγή"
-    elif conf >= 70:
-        return "🟢 **Υψηλή εμπιστοσύνη**: Κατάλληλο για κανονικό ποντάρισμα"
+    
+    # Αν η διπλή ευκαιρία έχει πολύ υψηλό ποσοστό
+    if top_two_prob >= 80:
+        return "🟢 **ΠΟΛΥ ΥΨΗΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία έχει >80% - Ιδανικό για safe bet"
+    elif top_two_prob >= 70:
+        return "🟡 **ΚΑΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία έχει >70% - Κατάλληλο για normal bet"
+    
+    # Αλλιώς βασιζόμαστε στο confidence του κυρίου σημείου
+    if conf >= 70:
+        return "🟢 **Υψηλή εμπιστοσύνη στο κύριο σημείο**: Κατάλληλο για κανονικό ποντάρισμα"
     elif conf >= 50:
-        return "🟡 **Μέτρια εμπιστοσύνη**: Μείωση ποντάρισματος ή διπλή ευκαιρία"
+        return "🟡 **Μέτρια εμπιστοσύνη στο κύριο σημείο**: Μείωση ποντάρισματος ή προτίμηση στη διπλή ευκαιρία"
     else:
-        return "🔴 **Χαμηλή εμπιστοσύνη**: Μικρό ποντάρισμα ή αποφυγή"
+        return "🔴 **Χαμηλή εμπιστοσύνη στο κύριο σημείο**: Μικρό ποντάρισμα ή αποφυγή"
 
 # ==============================
 # SAFE FUNCTION FOR ODDS
@@ -497,7 +505,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.4)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.3.5)
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -569,7 +577,7 @@ else:
     # Προσθήκη warning αν το Χ είναι πολύ χαμηλό
     real_draw_total = (st.session_state.hd + st.session_state.ad) / (h_t + a_t) if (h_t + a_t) > 0 else 0
     if real_draw_total < 0.15:
-        warning = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15% στα στατιστικά. Προτείνεται κάλυψη 1-2."
+        warning = f"🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15% στα στατιστικά. Προτείνεται κάλυψη {top_two}."
 
 st.session_state.current_proposal = f"{main_point} ({top_two})"
 
@@ -579,7 +587,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.4</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.5</div>
         <div class="main-proposal">
             <span>{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -593,7 +601,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.4</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.3.5</div>
         <div class="main-proposal">
             <span>{main_point}</span>
         </div>
@@ -612,59 +620,71 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     dc_recommendations = analyze_double_chance(p1, pX, p2, odd1, oddX, odd2, h_t, a_t)
     dc_reasons = get_double_chance_reason(p1, pX, p2, h_t, a_t)
     
+    # Πάντα να υπάρχει επεξήγηση για τη διπλή ευκαιρία που προτείνουμε
+    if total >= 6:
+        st.markdown(f"### 📊 Ανάλυση Πρότασης")
+        st.markdown(f"""
+        - **Κύριο σημείο:** {main_point} ({sorted_stats[0][1]*100:.1f}%)
+        - **Διπλή ευκαιρία:** {top_two} ({top_two_prob:.1f}%)
+        - **Επεξήγηση:** Επιλέχθηκε το {main_point} ως κύριο σημείο (μεγαλύτερο ποσοστό) και {top_two} ως κάλυψη (τα δύο μεγαλύτερα ποσοστά).
+        """)
+    
+    # Υπόλοιπες ευκαιρίες double chance (αν υπάρχουν)
     if dc_recommendations and total >= 6:
-        st.markdown("### 🎯 Double Chance Opportunities")
+        st.markdown("### 🎯 Άλλες Double Chance Opportunities")
         
         for rec in dc_recommendations:
-            if rec['odds'] >= 1.80:
-                bg_color = "#e8f5e9"
-                border_color = "#2ecc71"
-            elif rec['odds'] >= 1.50:
-                bg_color = "#fff3e0"
-                border_color = "#f39c12"
-            else:
-                bg_color = "#e3f2fd"
-                border_color = "#3498db"
-            
-            if rec['value'] > 10:
-                value_text = f"🔥 +{rec['value']:.1f}%"
-                value_color = "#2ecc71"
-            elif rec['value'] > 5:
-                value_text = f"📈 +{rec['value']:.1f}%"
-                value_color = "#f1c40f"
-            else:
-                value_text = f"⚖️ +{rec['value']:.1f}%"
-                value_color = "#95a5a6"
-            
-            risk_label = "🔴 Υψηλό" if rec['risk'] == 'high' else "🟡 Μέτριο" if rec['risk'] == 'medium' else "🟢 Χαμηλό"
-            
-            st.markdown(f"""
-            <div class="dc-card" style="background-color: {bg_color}; border-left-color: {border_color};">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <span style="font-size: 2rem; font-weight: bold; color: #1e3c72;">{rec['pick']}</span>
-                        <span style="font-size: 1.2rem; margin-left: 10px; background-color: white; padding: 3px 10px; border-radius: 15px;">
-                            {rec['prob']:.1f}%
-                        </span>
+            # Αν η πρόταση είναι διαφορετική από αυτή που ήδη δείξαμε
+            if rec['pick'] != top_two:
+                if rec['odds'] >= 1.80:
+                    bg_color = "#e8f5e9"
+                    border_color = "#2ecc71"
+                elif rec['odds'] >= 1.50:
+                    bg_color = "#fff3e0"
+                    border_color = "#f39c12"
+                else:
+                    bg_color = "#e3f2fd"
+                    border_color = "#3498db"
+                
+                if rec['value'] > 10:
+                    value_text = f"🔥 +{rec['value']:.1f}%"
+                    value_color = "#2ecc71"
+                elif rec['value'] > 5:
+                    value_text = f"📈 +{rec['value']:.1f}%"
+                    value_color = "#f1c40f"
+                else:
+                    value_text = f"⚖️ +{rec['value']:.1f}%"
+                    value_color = "#95a5a6"
+                
+                risk_label = "🔴 Υψηλό" if rec['risk'] == 'high' else "🟡 Μέτριο" if rec['risk'] == 'medium' else "🟢 Χαμηλό"
+                
+                st.markdown(f"""
+                <div class="dc-card" style="background-color: {bg_color}; border-left-color: {border_color};">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 2rem; font-weight: bold; color: #1e3c72;">{rec['pick']}</span>
+                            <span style="font-size: 1.2rem; margin-left: 10px; background-color: white; padding: 3px 10px; border-radius: 15px;">
+                                {rec['prob']:.1f}%
+                            </span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.8rem; font-weight: bold;">{rec['odds']:.2f}</div>
+                            <div style="color: {value_color};">{value_text}</div>
+                        </div>
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 1.8rem; font-weight: bold;">{rec['odds']:.2f}</div>
-                        <div style="color: {value_color};">{value_text}</div>
+                    <div style="margin-top: 10px; color: #34495e;">
+                        📌 {rec['reason']}
+                    </div>
+                    <div style="margin-top: 5px; font-size: 0.9rem;">
+                        Ρίσκο: {risk_label}
                     </div>
                 </div>
-                <div style="margin-top: 10px; color: #34495e;">
-                    📌 {rec['reason']}
-                </div>
-                <div style="margin-top: 5px; font-size: 0.9rem;">
-                    Ρίσκο: {risk_label}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
     else:
         if total < 6:
             st.info("ℹ️ Ανεπαρκή δεδομένα για ανάλυση double chance")
         else:
-            st.info("ℹ️ Δεν εντοπίστηκαν ευκαιρίες double chance με καλή απόδοση/πιθανότητα")
+            st.info("ℹ️ Δεν εντοπίστηκαν άλλες ευκαιρίες double chance")
     
     if dc_reasons and total >= 6:
         with st.expander("📊 Στατιστικά Στοιχεία", expanded=False):
@@ -731,29 +751,57 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
         st.markdown("---")
         st.markdown("### 📈 Αναλυτική Σύγκριση Πιθανοτήτων")
         
-        comp_data = {
-            'Σημείο': ['1', 'X', '2'],
-            'Απόδοση': [f"{odd1:.2f}", f"{oddX:.2f}", f"{odd2:.2f}"],
-            'Μοντέλο': [f"{p1*100:.1f}%", f"{pX*100:.1f}%", f"{p2*100:.1f}%"],
-            'Bookie': [f"{1/odd1*100:.1f}%", f"{1/oddX*100:.1f}%", f"{1/odd2*100:.1f}%"],
-            'Διαφορά': [f"{p1*100 - 1/odd1*100:+.1f}%", 
-                       f"{pX*100 - 1/oddX*100:+.1f}%", 
-                       f"{p2*100 - 1/odd2*100:+.1f}%"]
-        }
-        
+        # Υπολογισμοί για όλες τις περιπτώσεις
+        prob_1X = p1 + pX
+        prob_X2 = pX + p2
         prob_12 = p1 + p2
-        implied_12 = 1 / (1/odd1 + 1/odd2)
-        comp_data['Σημείο'].append('12')
-        comp_data['Απόδοση'].append(f"{implied_12:.2f}")
-        comp_data['Μοντέλο'].append(f"{prob_12*100:.1f}%")
-        comp_data['Bookie'].append(f"{1/implied_12*100:.1f}%")
-        comp_data['Διαφορά'].append(f"{prob_12*100 - 1/implied_12*100:+.1f}%")
+        
+        implied_1X = 1 / (1/odd1 + 1/oddX) if odd1 > 1.0 and oddX > 1.0 else 0
+        implied_X2 = 1 / (1/oddX + 1/odd2) if oddX > 1.0 and odd2 > 1.0 else 0
+        implied_12 = 1 / (1/odd1 + 1/odd2) if odd1 > 1.0 and odd2 > 1.0 else 0
+        
+        # Δημιουργία πίνακα με όλες τις περιπτώσεις
+        comp_data = {
+            'Σημείο': ['1', 'X', '2', '1X', 'X2', '12'],
+            'Απόδοση': [
+                f"{odd1:.2f}", 
+                f"{oddX:.2f}", 
+                f"{odd2:.2f}",
+                f"{implied_1X:.2f}",
+                f"{implied_X2:.2f}", 
+                f"{implied_12:.2f}"
+            ],
+            'Μοντέλο': [
+                f"{p1*100:.1f}%", 
+                f"{pX*100:.1f}%", 
+                f"{p2*100:.1f}%",
+                f"{prob_1X*100:.1f}%",
+                f"{prob_X2*100:.1f}%", 
+                f"{prob_12*100:.1f}%"
+            ],
+            'Bookie': [
+                f"{1/odd1*100:.1f}%", 
+                f"{1/oddX*100:.1f}%", 
+                f"{1/odd2*100:.1f}%",
+                f"{1/implied_1X*100:.1f}%",
+                f"{1/implied_X2*100:.1f}%", 
+                f"{1/implied_12*100:.1f}%"
+            ],
+            'Διαφορά': [
+                f"{p1*100 - 1/odd1*100:+.1f}%", 
+                f"{pX*100 - 1/oddX*100:+.1f}%", 
+                f"{p2*100 - 1/odd2*100:+.1f}%",
+                f"{prob_1X*100 - 1/implied_1X*100:+.1f}%",
+                f"{prob_X2*100 - 1/implied_X2*100:+.1f}%", 
+                f"{prob_12*100 - 1/implied_12*100:+.1f}%"
+            ]
+        }
         
         st.dataframe(comp_data, use_container_width=True, hide_index=True)
         
         st.markdown("---")
         st.markdown("### 💡 Συμβουλή Διαχείρισης Ρίσκου")
-        st.info(get_risk_advice(p1, pX, p2, conf, total))
+        st.info(get_risk_advice(p1, pX, p2, conf, total, top_two_prob))
     else:
         st.info("ℹ️ Ανεπαρκή δεδομένα για αναλυτική εξήγηση (χρειάζονται ≥6 συνολικά παιχνίδια)")
 
@@ -794,4 +842,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.3.4 - Πρόταση με διπλή ευκαιρία και χρωματιστό ποσοστό")
+st.caption("BetAnalyzer v17.3.5 - Πλήρης ανάλυση με διπλή ευκαιρία και χρωματιστό ποσοστό")
