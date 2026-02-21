@@ -50,10 +50,6 @@ st.markdown("""
     background-color: #f8f9fa; padding: 10px; border-radius: 8px;
     margin-top: 15px; font-family: monospace; font-size: 1rem; color: #555;
 }
-.value-box {
-    background-color: #e8f5e9; padding: 8px; border-radius: 8px;
-    margin-top: 10px; font-size: 1rem; color: #2e7d32; border: 1px solid #a5d6a7;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -90,49 +86,57 @@ with st.sidebar:
     st.number_input("Ήττες", 0, 100, key="al")
 
 # ==============================
-# LOGIC ENGINE (CORRECTED v17.2.9)
+# LOGIC ENGINE
 # ==============================
+h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
+a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
+total = h_t + a_t
+
+display_proposal = "📊 Αναμένοντας δεδομένα..."
+conf = 0
+color = "#95a5a6"
+warning_msg = ""
+real_1, real_X, real_2 = 0, 0, 0
+
 if total >= 6:
-    # Υπολογισμός Real Stats
+    # 1. Real Stats
     real_1 = st.session_state.hw / h_t if h_t > 0 else 0
     real_2 = st.session_state.aw / a_t if a_t > 0 else 0
     real_X = (st.session_state.hd + st.session_state.ad) / total if total > 0 else 0
 
-    # Υπολογισμός Implied Probabilities & Value
+    # 2. Value Calculation
     implied_total = (1/o1) + (1/ox) + (1/o2)
-    norm_implied_1 = (1/o1) / implied_total * 100
-    norm_implied_X = (1/ox) / implied_total * 100
-    norm_implied_2 = (1/o2) / implied_total * 100
-    
-    values = {"1": real_1 * 100 - norm_implied_1, "X": real_X * 100 - norm_implied_X, "2": real_2 * 100 - norm_implied_2}
-    
-    # 1. Βρίσκουμε το κυρίαρχο σημείο βάσει Real Stats
+    norm_impl_1 = (1/o1) / implied_total * 100
+    norm_impl_2 = (1/o2) / implied_total * 100
+    norm_impl_X = (1/ox) / implied_total * 100
+
+    # 3. Dominant Point
     probs = {"1": real_1, "X": real_X, "2": real_2}
     base_point = max(probs, key=probs.get)
     
-    # 2. Χτίζουμε την κύρια πρόταση
     main_text = base_point
-    if values[base_point] > 0:
+    # Value flag logic
+    current_real = probs[base_point] * 100
+    current_implied = norm_impl_1 if base_point == "1" else norm_impl_X if base_point == "X" else norm_impl_2
+    if current_real > current_implied:
         main_text += " (VALUE)"
-    
-    # 3. Προσθέτουμε την κάλυψη σε παρένθεση (Κανόνας X < 15% ή 1&2 > 45%)
+
+    # 4. Coverage Logic
     coverage_html = ""
     is_12_rule = (real_1 > 0.45 and real_2 > 0.45) or (real_X < 0.15)
     
     if is_12_rule:
         coverage_html = f" <span class='coverage-text'>(1-2)</span>"
-        warning_msg = "🎯 NO DRAW ALERT: Στατιστικά πολύ χαμηλό Χ. Προτίμηση στο 1-2."
+        warning_msg = "🎯 NO DRAW ALERT: Το Χ είναι κάτω από 15%. Προτείνεται 1-2."
     elif real_X > 0.40:
-        # Αν το Χ είναι κυρίαρχο λόγω του κανόνα >40% (Οδηγία 10ης Ιανουαρίου)
         main_text = "X (VALUE)"
-        warning_msg = "🤝 DRAW STRATEGY: Το Real Stat X είναι > 40%."
+        warning_msg = "🤝 DRAW STRATEGY: Real Stat X > 40%."
     elif base_point == "1" and real_X > 0.25:
         coverage_html = f" <span class='coverage-text'>(1X)</span>"
     elif base_point == "2" and real_X > 0.25:
         coverage_html = f" <span class='coverage-text'>(X2)</span>"
 
     display_proposal = f"{main_text}{coverage_html}"
-    
     conf = int(probs[base_point] * 100)
     color = "#2ecc71" if conf >= 65 else "#f1c40f" if conf >= 45 else "#e74c3c"
 
@@ -145,55 +149,17 @@ st.markdown(f"""
     <div class="main-proposal">{display_proposal}</div>
     <div style="font-size:1.5rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
     <div class="stat-box">
-        📊 Στατιστικά: 1: {real_1*100:.1f}% | X: {real_X*100:.1f}% | 2: {real_2*100:.1f}%
+        [LIVE PROBS]: 1: {real_1*100:.1f}% | X: {real_X*100:.1f}% | 2: {real_2*100:.1f}%
     </div>
+</div>
 """, unsafe_allow_html=True)
-
-if value_text:
-    st.markdown(f'<div class="value-box">{value_text}</div>', unsafe_allow_html=True)
-
-st.markdown("</div>", unsafe_allow_html=True)
 
 if warning_msg:
     st.markdown(f'<div class="warning-box">{warning_msg}</div>', unsafe_allow_html=True)
 
-# Safety Net
 if total >= 6 and (real_1 + real_2) < 0.40:
     st.error("⚠️ HIGH RISK MATCH: Statistics are very low, abstention is recommended.")
 
 st.markdown("---")
-
-# Εμφάνιση στατιστικών σε δύο στήλες
-if total >= 6:
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("### 🏠 Γηπεδούχος")
-        st.markdown(f"Νίκες: {st.session_state.hw}")
-        st.markdown(f"Ισοπαλίες: {st.session_state.hd}")
-        st.markdown(f"Ήττες: {st.session_state.hl}")
-        st.markdown(f"**Σύνολο:** {h_t} αγώνες")
-    
-    with col2:
-        st.markdown("### 🚀 Φιλοξενούμενος")
-        st.markdown(f"Νίκες: {st.session_state.aw}")
-        st.markdown(f"Ισοπαλίες: {st.session_state.ad}")
-        st.markdown(f"Ήττες: {st.session_state.al}")
-        st.markdown(f"**Σύνολο:** {a_t} αγώνες")
-    
-    # Εμφάνιση implied probabilities
-    st.markdown("---")
-    st.markdown("### 📈 Σύγκριση με Bookie")
-    col3, col4, col5 = st.columns(3)
-    with col3:
-        st.metric("Άσος (1)", f"{norm_implied_1:.1f}%", f"{value_1:+.1f}%")
-    with col4:
-        st.metric("Ισοπαλία (X)", f"{norm_implied_X:.1f}%", f"{value_X:+.1f}%")
-    with col5:
-        st.metric("Διπλό (2)", f"{norm_implied_2:.1f}%", f"{value_2:+.1f}%")
-
 if total < 6:
     st.info("📊 Συμπληρώστε τουλάχιστον 6 συνολικά παιχνίδια για ανάλυση")
-
-# Footer
-st.markdown("---")
-st.caption("BetAnalyzer v17.2.9 - Στατιστική ανάλυση με κάλυψη ισοπαλίας και value detection")
