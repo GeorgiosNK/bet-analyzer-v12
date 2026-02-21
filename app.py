@@ -491,16 +491,14 @@ if h_t > 0 and a_t > 0 and total >= 8:
     real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
     away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
     
-   if real_draw_pct < 0.18 or away_draw_pct < 0.10:
-    reduction = 0.35 if real_draw_pct < 0.15 else 0.20
-    pX = pX * (1 - reduction)
-
-    remaining = 1 - pX
-    base_sum = p1 + p2
-    if remaining > 0 and base_sum > 0:
-        new_p1 = (p1 / base_sum) * remaining
-        new_p2 = (p2 / base_sum) * remaining
-        p1, p2 = new_p1, new_p2
+    if real_draw_pct < 0.18 or away_draw_pct < 0.10:
+        reduction = 0.35 if real_draw_pct < 0.15 else 0.20
+        pX = pX * (1 - reduction)
+        
+        remaining = 1 - pX
+        if remaining > 0:
+            p1 = p1 / (p1 + p2) * remaining
+            p2 = p2 / (p1 + p2) * remaining
 
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
@@ -800,9 +798,9 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 f"{1/odd1*100:.1f}%", 
                 f"{1/oddX*100:.1f}%", 
                 f"{1/odd2*100:.1f}%",
-                f"{(1/implied_1X*100):.1f}%" if implied_1X > 0 else "-",
-                f"{(1/implied_X2*100):.1f}%" if implied_1X > 0 else "-", 
-                f"{(1/implied_12*100):.1f}%" if implied_1X > 0 else "-""
+                f"{1/implied_1X*100:.1f}%",
+                f"{1/implied_X2*100:.1f}%", 
+                f"{1/implied_12*100:.1f}%"
             ],
             'Διαφορά': [
                 f"{p1*100 - 1/odd1*100:+.1f}%", 
