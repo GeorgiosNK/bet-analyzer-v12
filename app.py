@@ -741,7 +741,7 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 st.markdown("- Ανεπαρκή στατιστικά για αναλυτική εξήγηση")
         
         with col2:
-            st.markdown("### ⚖️ Ανάλυση Value")
+            st.markdown("### ⚖️ Ανάλυση απόδοσης(%)")
             if len(explanations) > 3:
                 for exp in explanations[3:]:
                     st.markdown(f"- {exp}")
@@ -757,11 +757,11 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 
                 if abs(value_amount) > 5:
                     if value_amount > 0:
-                        st.markdown(f"✅ **Value detected**: +{value_amount:.1f}% στο {value_map[best_value]}")
+                        st.markdown(f"✅ **Εντοπίστηκε απόδοση με αξία**: +{value_amount:.1f}% στο {value_map[best_value]}")
                     else:
-                        st.markdown(f"❌ **Overpriced**: {value_amount:.1f}% στο {value_map[best_value]}")
+                        st.markdown(f"❌ **Υπερτιμημένη Απόδοση**: {value_amount:.1f}% στο {value_map[best_value]}")
                 else:
-                    st.markdown(f"⚖️ **Fair value**: {value_amount:.1f}% διαφορά")
+                    st.markdown(f"⚖️ **Δίκαιη απόδοση**: {value_amount:.1f}% διαφορά")
         
         st.markdown("---")
         st.markdown("### 📈 Αναλυτική Σύγκριση Πιθανοτήτων")
