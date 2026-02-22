@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="BetAnalyzer v17.4.0", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Soccer Match Analyzer v3.0.0", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -842,4 +842,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("BetAnalyzer v17.4.0 - Όλα τα στατιστικά στο Control Panel")
+st.caption("Soccer Match Analyzer v3.0.0")
