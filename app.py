@@ -600,7 +600,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.4.0</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.0.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -614,7 +614,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 BetAnalyzer v17.4.0</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.0.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
         </div>
