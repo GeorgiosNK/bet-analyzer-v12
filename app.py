@@ -243,19 +243,19 @@ def get_double_chance_reason(p1, pX, p2, h_t, a_t):
         home_losses = st.session_state.hl / h_t
         home_draws = st.session_state.hd / h_t
         if home_losses < 0.15:
-            reasons.append(f"🏠 Γηπεδούχος: Μόνο {home_losses*100:.0f}% ήττες εντός έδρας")
+            reasons.append(f"🏠 Home team: Only {home_losses*100:.0f}% home defeats")
         if home_draws > 0.35:
-            reasons.append(f"🤝 Γηπεδούχος: {home_draws*100:.0f}% ισοπαλίες")
+            reasons.append(f"🤝 Home team: {home_draws*100:.0f}% draws")
     
     if a_t > 0:
         away_losses = st.session_state.al / a_t
         away_draws = st.session_state.ad / a_t
         if away_losses < 0.20:
-            reasons.append(f"🚀 Φιλοξενούμενος: Μόνο {away_losses*100:.0f}% ήττες εκτός έδρας")
+            reasons.append(f"🚀 Home team: Only {away_losses*100:.0f}% home defeats")
         if away_draws > 0.35:
-            reasons.append(f"🤝 Φιλοξενούμενος: {away_draws*100:.0f}% ισοπαλίες")
+            reasons.append(f"🤝 Guest team: {away_draws*100:.0f}% draws")
         if away_draws < 0.10 and a_t >= 10:
-            reasons.append(f"⚡ Φιλοξενούμενος: ΜΟΝΟ {away_draws*100:.1f}% ισοπαλίες εκτός έδρας!")
+            reasons.append(f"⚡ Guest team: Only {away_draws*100:.1f}% away draws!")
     
     return reasons
 
