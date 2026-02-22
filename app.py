@@ -319,11 +319,11 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, main_point, top
         explanation_parts.append(f"🎯 **ΚΑΘΟΛΟΥ ΙΣΟΠΑΛΙΑ**: Προτείνεται 12 ως κάλυψη των δύο επικρατέστερων αποτελεσμάτων (1 και 2)")
     
     if "1" in proposal and "VALUE" not in proposal:
-        explanation_parts.append(f"✅ **Καθαρό φαβορί**: Το {main_point} επιλέχθηκε ως κύριο σημείο (μεγαλύτερο ποσοστό: {sorted_stats[0][1]*100:.1f}%)")
+        explanation_parts.append(f"✅ **Dominant team**: The {main_point} was chosen as the main bet point (highest percentage: {sorted_stats[0][1]*100:.1f}%)")
     elif "2" in proposal and "VALUE" not in proposal:
-        explanation_parts.append(f"✅ **Καθαρό φαβορί**: Το {main_point} επιλέχθηκε ως κύριο σημείο (μεγαλύτερο ποσοστό: {sorted_stats[0][1]*100:.1f}%)")
+        explanation_parts.append(f"✅ **Dominant team**: Το {main_point} was chosen as the main bet pont (μεγαλύτερο ποσοστό: {sorted_stats[0][1]*100:.1f}%)")
     elif "X" in proposal and "VALUE" not in proposal:
-        explanation_parts.append(f"⚠️ **Ισοπαλία**: Το {main_point} επιλέχθηκε ως κύριο σημείο (μεγαλύτερο ποσοστό: {sorted_stats[0][1]*100:.1f}%)")
+        explanation_parts.append(f"⚠️ **Draw**: The {main_point} was chosen as the main bet point (highest percentage: {sorted_stats[0][1]*100:.1f}%)")
     
     return explanation_parts
 
@@ -384,21 +384,21 @@ def get_risk_advice(p1, pX, p2, conf, total, top_two_prob, main_point, top_two):
     Επιστρέφει συμβουλές διαχείρισης ρίσκου
     """
     if total < 8:
-        return "🔴 **ΑΝΕΠΑΡΚΗ ΔΕΔΟΜΕΝΑ**: Λιγότερα από 8 συνολικά παιχνίδια - Αποφυγή"
+        return "🔴 **INSUFFICIENT DATA**: Less than 8 total games - Avoid"
     
     # Αν η διπλή ευκαιρία έχει πολύ υψηλό ποσοστό
     if top_two_prob >= 80:
-        return f"🟢 **ΠΟΛΥ ΥΨΗΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία {top_two} έχει {top_two_prob:.1f}% - Ιδανικό για safe bet, ενώ το κύριο σημείο {main_point} έχει {conf}% confidence"
+        return f"🟢 **VERY HIGH PROBABILITY OF COVERAGE**: Double chance {top_two} has {top_two_prob:.1f}% - Ideal for a safe bet, while the main proposal {main_point} has {conf}% confidence"
     elif top_two_prob >= 70:
-        return f"🟡 **ΚΑΛΗ ΠΙΘΑΝΟΤΗΤΑ ΚΑΛΥΨΗΣ**: Η διπλή ευκαιρία {top_two} έχει {top_two_prob:.1f}% - Κατάλληλο για normal bet, το κύριο σημείο {main_point} έχει {conf}% confidence"
+        return f"🟡 **GOOD POSSIBILITY OF COVERAGE**: Double chance {top_two} has {top_two_prob:.1f}% - Suitable for normal bet, the main proposal {main_point} has {conf}% confidence"
     
     # Αλλιώς βασιζόμαστε στο confidence του κυρίου σημείου
     if conf >= 70:
-        return f"🟢 **Υψηλή εμπιστοσύνη στο κύριο σημείο**: Το {main_point} έχει {conf}% confidence - Κατάλληλο για κανονικό ποντάρισμα"
+        return f"🟢 **High confidence in the main Bet**: Το {main_point} has {conf}% confidence - Suitable for regular betting"
     elif conf >= 50:
-        return f"🟡 **Μέτρια εμπιστοσύνη στο κύριο σημείο**: Το {main_point} έχει {conf}% confidence - Μείωση ποντάρισματος ή προτίμηση στη διπλή ευκαιρία {top_two} ({top_two_prob:.1f}%)"
+        return f"🟡 **Moderate confidence in the main Bet**: Το {main_point} has {conf}% confidence - Reducing the bet or preferring the double chance proposal {top_two} ({top_two_prob:.1f}%)"
     else:
-        return f"🔴 **Χαμηλή εμπιστοσύνη στο κύριο σημείο**: Το {main_point} έχει μόνο {conf}% confidence - Μικρό ποντάρισμα ή αποφυγή"
+        return f"🔴 **Low confidence in the main Bet**: Το {main_point} has only {conf}% confidence - Small bet or avoid"
 
 # ==============================
 # SAFE FUNCTION FOR ODDS
@@ -424,12 +424,12 @@ with st.sidebar:
     o2_i = st.text_input("Away Win (2)", key="o2")
     
     st.markdown("---")
-    st.markdown("### 🏠 Home Team (εντός έδρας)")
+    st.markdown("### 🏠 Home Team ")
     st.number_input("Victories", 0, 100, key="hw", help="Wins in all home matches")
     st.number_input("Draws", 0, 100, key="hd", help="Draws in all home matches")
     st.number_input("Defeats", 0, 100, key="hl", help="Defeats in all home matches")
     
-    st.markdown("### 🚀 Away Team (εκτός έδρας)")
+    st.markdown("### 🚀 Away Team ")
     st.number_input("Victories", 0, 100, key="aw", help="Wins in all away matches")
     st.number_input("Draws", 0, 100, key="ad", help="Draws in all away matches")
     st.number_input("Defeats", 0, 100, key="al", help="Defeats in all away matches")
@@ -571,7 +571,7 @@ else:
         conf = int(base_conf * confidence_multiplier)
         conf = min(conf, 60)
         if not warning and total < 8:
-            warning = "⚠️ ΜΕΙΩΜΕΝΗ ΑΞΙΟΠΙΣΤΙΑ: Λίγα στατιστικά δεδομένα"
+            warning = "⚠️ REDUCED RELIABILITY: Low statistical data"
     elif total < 15:
         conf = min(base_conf, 70)
     else:
@@ -588,9 +588,9 @@ else:
     # Προσθήκη στατιστικής παρατήρησης αν το Χ είναι πολύ χαμηλό (βάσει μοντέλου)
     model_draw_pct = pX * 100
     if model_draw_pct < 15:
-        warning = f"📊 ΣΤΑΤΙΣΤΙΚΗ ΠΑΡΑΤΗΡΗΣΗ: Η ισοπαλία είναι πολύ χαμηλή στο μοντέλο ({model_draw_pct:.1f}%). Η πρόταση {top_two} βασίζεται στα δύο επικρατέστερα αποτελέσματα."
+        warning = f"📊 STATISTICAL OBSERVATION: The draw is very low in the model ({model_draw_pct:.1f}%). The proposal {top_two} based on the two most prevalent results."
     elif model_draw_pct < 20:
-        warning = f"📊 ΣΤΑΤΙΣΤΙΚΗ ΠΑΡΑΤΗΡΗΣΗ: Η ισοπαλία είναι στο {model_draw_pct:.1f}% στο μοντέλο. Η πρόταση {top_two} επιλέχθηκε ως κάλυψη."
+        warning = f"📊 STATISTICAL OBSERVATION: The draw is {model_draw_pct:.1f}% in the model. The proposal {top_two} was chosen as cover bet."
 
 st.session_state.current_proposal = f"{main_point} ({top_two})"
 
@@ -637,14 +637,14 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     if total >= 6:
         st.markdown(f"### 📊 Proposal Analysis")
         st.markdown(f"""
-        - **Κύριο σημείο:** {main_point} ({sorted_stats[0][1]*100:.1f}%)
-        - **Διπλή ευκαιρία:** {top_two} ({top_two_prob:.1f}%)
-        - **Επεξήγηση:** Selected {main_point} as a main point (μεγαλύτερο ποσοστό) and {top_two} as coverage (the two largest percentages).
+        - **Main point:** {main_point} ({sorted_stats[0][1]*100:.1f}%)
+        - **Double chance:** {top_two} ({top_two_prob:.1f}%)
+        - **interpretation:** Selected {main_point} as a main point (μεγαλύτερο ποσοστό) and {top_two} as coverage (the two largest percentages).
         """)
     
     # Υπόλοιπες ευκαιρίες double chance (αν υπάρχουν)
     if dc_recommendations and total >= 6:
-        st.markdown("### 🎯 Άλλες Double Chance Opportunities")
+        st.markdown("### 🎯 Other Double Chance Opportunities")
         
         for rec in dc_recommendations:
             # Αν η πρόταση είναι διαφορετική από αυτή που ήδη δείξαμε
@@ -669,7 +669,7 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                     value_text = f"⚖️ +{rec['value']:.1f}%"
                     value_color = "#95a5a6"
                 
-                risk_label = "🔴 Υψηλό" if rec['risk'] == 'high' else "🟡 Μέτριο" if rec['risk'] == 'medium' else "🟢 Χαμηλό"
+                risk_label = "🔴 High" if rec['risk'] == 'high' else "🟡 Moderate" if rec['risk'] == 'medium' else "🟢 Low"
                 
                 st.markdown(f"""
                 <div class="dc-card" style="background-color: {bg_color}; border-left-color: {border_color};">
@@ -695,12 +695,12 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                 """, unsafe_allow_html=True)
     else:
         if total < 6:
-            st.info("ℹ️ Ανεπαρκή δεδομένα για ανάλυση double chance")
+            st.info("ℹ️ Insufficient data for double chance analysis")
         else:
-            st.info("ℹ️ Δεν εντοπίστηκαν άλλες ευκαιρίες double chance")
+            st.info("ℹ️ No other double chance opportunities were found.")
     
     if dc_reasons and total >= 6:
-        with st.expander("📊 Στατιστικά Στοιχεία", expanded=False):
+        with st.expander("📊 Statistical Data", expanded=False):
             for reason in dc_reasons:
                 st.markdown(f"- {reason}")
     
@@ -708,9 +708,9 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
         model_draw_pct = pX * 100
         real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
         away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0
-        st.markdown(f"**📊 Ποσοστό Χ στο μοντέλο:** {model_draw_pct:.1f}%")
-        st.markdown(f"**📊 Πραγματικό ποσοστό ισοπαλίας:** {real_draw_pct*100:.1f}%")
-        st.markdown(f"**📊 Φιλοξενούμενος ισοπαλίες εκτός:** {away_draw_pct*100:.1f}%")
+        st.markdown(f"**📊 Percentage X in the model:** {model_draw_pct:.1f}%")
+        st.markdown(f"**📊 Actual draw percentage:** {real_draw_pct*100:.1f}%")
+        st.markdown(f"**📊 Away team draws:** {away_draw_pct*100:.1f}%")
     
     st.markdown("---")
     st.markdown("""
@@ -747,9 +747,9 @@ with st.expander("🔍 Detailed Forecast Explanation", expanded=False):
                     st.markdown(f"- {exp}")
             else:
                 value_map = {
-                    'home_edge': 'Άσος (1)',
-                    'draw_edge': 'Ισοπαλία (Χ)',
-                    'away_edge': 'Διπλό (2)'
+                    'home_edge': 'Home Win (1)',
+                    'draw_edge': 'Draw (Χ)',
+                    'away_edge': 'Away Win (2)'
                 }
                 
                 value_amount = metrics.get('value_amount', 0)
@@ -764,7 +764,7 @@ with st.expander("🔍 Detailed Forecast Explanation", expanded=False):
                     st.markdown(f"⚖️ **Fair value**: {value_amount:.1f}% διαφορά")
         
         st.markdown("---")
-        st.markdown("### 📈 Αναλυτική Σύγκριση Πιθανοτήτων")
+        st.markdown("### 📈 Analytical Probability Comparison")
         
         # Υπολογισμοί για όλες τις περιπτώσεις
         prob_1X = p1 + pX
@@ -818,7 +818,7 @@ with st.expander("🔍 Detailed Forecast Explanation", expanded=False):
         st.markdown("### 💡 Συμβουλή Διαχείρισης Ρίσκου")
         st.info(get_risk_advice(p1, pX, p2, conf, total, top_two_prob, main_point, top_two))
     else:
-        st.info("ℹ️ Ανεπαρκή δεδομένα για αναλυτική εξήγηση (χρειάζονται ≥6 συνολικά παιχνίδια)")
+        st.info("ℹ️ Insufficient data for detailed analysis (≥6 total games needed)")
 
 st.markdown("---")
 
@@ -838,7 +838,7 @@ if total >= 6:
                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True)
 else:
-    st.info("📊 Συμπληρώστε τουλάχιστον 6 συνολικά παιχνίδια για να εμφανιστεί το γράφημα")
+    st.info("📊 Enter at least 6 total game statistics for the graph to appear")
 
 # Footer
 st.markdown("---")
