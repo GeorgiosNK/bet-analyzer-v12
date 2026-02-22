@@ -273,7 +273,7 @@ def generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, main_point, top
         model_draw_pct = pX * 100
         
         if model_draw_pct < 15:
-            explanation_parts.append(f"⚡ **ΠΟΛΥ ΧΑΜΗΛΟ Χ ΣΤΟ ΜΟΝΤΕΛΟ**: {model_draw_pct:.1f}% - Η πρόταση {top_two} βασίζεται στα δύο επικρατέστερα αποτελέσματα")
+            explanation_parts.append(f"⚡ **VERY LOW X ON THE MODEL**: {model_draw_pct:.1f}% - The proposal {top_two} based on the two most prevalent results")
         elif model_draw_pct < 20:
             explanation_parts.append(f"⚡ **Χαμηλό Χ στο μοντέλο**: {model_draw_pct:.1f}% - Η πρόταση {top_two} επιλέχθηκε ως κάλυψη")
     
@@ -418,21 +418,21 @@ with st.sidebar:
     st.header("🏆 Control Panel")
     st.button("🧹 Clear Stats & Odds", on_click=reset_all, use_container_width=True)
     
-    st.markdown("### 💰 Αποδόσεις")
-    o1_i = st.text_input("Άσος (1)", key="o1")
-    ox_i = st.text_input("Ισοπαλία (X)", key="ox")
-    o2_i = st.text_input("Διπλό (2)", key="o2")
+    st.markdown("### 💰 Odds")
+    o1_i = st.text_input("Home win (1)", key="o1")
+    ox_i = st.text_input("Draw (X)", key="ox")
+    o2_i = st.text_input("Away Win (2)", key="o2")
     
     st.markdown("---")
-    st.markdown("### 🏠 Γηπεδούχος (εντός έδρας)")
-    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες σε όλους τους εντός έδρας αγώνες")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες σε όλους τους εντός έδρας αγώνες")
-    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες σε όλους τους εντός έδρας αγώνες")
+    st.markdown("### 🏠 Home Team (εντός έδρας)")
+    st.number_input("Victories", 0, 100, key="hw", help="Wins in all home matches")
+    st.number_input("Draws", 0, 100, key="hd", help="Draws in all home matches")
+    st.number_input("Defeats", 0, 100, key="hl", help="Defeats in all home matches")
     
-    st.markdown("### 🚀 Φιλοξενούμενος (εκτός έδρας)")
-    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες σε όλους τους εκτός έδρας αγώνες")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες σε όλους τους εκτός έδρας αγώνες")
-    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες σε όλους τους εκτός έδρας αγώνες")
+    st.markdown("### 🚀 Away Team (εκτός έδρας)")
+    st.number_input("Victories", 0, 100, key="aw", help="Wins in all away matches")
+    st.number_input("Draws", 0, 100, key="ad", help="Draws in all away matches")
+    st.number_input("Defeats", 0, 100, key="al", help="Defeats in all away matches")
 
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
@@ -556,7 +556,7 @@ color = "#95a5a6"
 # Έλεγχος στατιστικής επάρκειας
 if total < 6:
     proposal = "🚫 NO BET"
-    warning = "⚠️ ΑΝΕΠΑΡΚΗ ΣΤΑΤΙΣΤΙΚΑ: Χρειάζονται τουλάχιστον 6 συνολικά παιχνίδια"
+    warning = "⚠️ INSUFFICIENT STATISTICS: At least 6 total games needed"
     conf = 0
     color = "#95a5a6"
     main_point = "🚫"
@@ -635,11 +635,11 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     
     # Πάντα να υπάρχει επεξήγηση για τη διπλή ευκαιρία που προτείνουμε
     if total >= 6:
-        st.markdown(f"### 📊 Ανάλυση Πρότασης")
+        st.markdown(f"### 📊 Proposal Analysis")
         st.markdown(f"""
         - **Κύριο σημείο:** {main_point} ({sorted_stats[0][1]*100:.1f}%)
         - **Διπλή ευκαιρία:** {top_two} ({top_two_prob:.1f}%)
-        - **Επεξήγηση:** Επιλέχθηκε το {main_point} ως κύριο σημείο (μεγαλύτερο ποσοστό) και {top_two} ως κάλυψη (τα δύο μεγαλύτερα ποσοστά).
+        - **Επεξήγηση:** Selected {main_point} as a main point (μεγαλύτερο ποσοστό) and {top_two} as coverage (the two largest percentages).
         """)
     
     # Υπόλοιπες ευκαιρίες double chance (αν υπάρχουν)
@@ -715,16 +715,16 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     st.markdown("---")
     st.markdown("""
     **💡 Double Chance Tips:**
-    - 🟢 **Χαμηλό ρίσκο**: Αποδόσεις 1.30-1.50, >75% πιθανότητα
-    - 🟡 **Μέτριο ρίσκο**: Αποδόσεις 1.50-1.80, >70% πιθανότητα
-    - 🔴 **Υψηλό ρίσκο**: Αποδόσεις 1.80+, >65% πιθανότητα + value
-    - ⚡ **12 (όχι ισοπαλία)**: Όταν η πραγματική ισοπαλία στα στατιστικά είναι <15%
+    - 🟢 **Low risk**: Odds 1.30-1.50, >75% probability
+    - 🟡 **Moderate risk**: Odds 1.50-1.80, >70% probability
+    - 🔴 **High risk**: Odds 1.80+, >65% probability + value
+    - ⚡ **12 (no draw)**: When the real draw in statistics is <15%
     """)
 
 # ==============================
 # ANALYTICAL EXPLANATIONS
 # ==============================
-with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
+with st.expander("🔍 Detailed Forecast Explanation", expanded=False):
     
     if total >= 6:
         explanations = generate_explanation(p1, pX, p2, odd1, oddX, odd2, h_t, a_t, main_point, top_two, sorted_stats)
@@ -733,15 +733,15 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("### 📋 Παράγοντες Πρόβλεψης")
+            st.markdown("### 📋 Predictive Factors")
             if explanations:
                 for exp in explanations[:3]:
                     st.markdown(f"- {exp}")
             else:
-                st.markdown("- Ανεπαρκή στατιστικά για αναλυτική εξήγηση")
+                st.markdown("- Insufficient statistics for detailed analysis")
         
         with col2:
-            st.markdown("### ⚖️ Ανάλυση Value")
+            st.markdown("### ⚖️ Analysis Value")
             if len(explanations) > 3:
                 for exp in explanations[3:]:
                     st.markdown(f"- {exp}")
