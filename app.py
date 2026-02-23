@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Soccer Match Analyzer v3.0.0", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Soccer Match Analyzer v3.1.0", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -42,6 +42,11 @@ st.markdown("""
 .warning-box {
     background-color: #fff3cd; color: #856404; padding: 12px; 
     border-radius: 8px; border: 1px solid #ffeeba; margin: 10px 0;
+    font-weight: bold; text-align: center;
+}
+.disagreement-box {
+    background-color: #f8d7da; color: #721c24; padding: 12px; 
+    border-radius: 8px; border: 1px solid #f5c6cb; margin: 10px 0;
     font-weight: bold; text-align: center;
 }
 .dc-card {
@@ -110,6 +115,9 @@ if 'o1' not in st.session_state:
 if 'current_proposal' not in st.session_state:
     st.session_state.current_proposal = ""
 
+if 'bypass_odds' not in st.session_state:
+    st.session_state.bypass_odds = False
+
 def reset_all():
     st.session_state.hw = 0
     st.session_state.hd = 0
@@ -121,6 +129,7 @@ def reset_all():
     st.session_state.ox = "1.00"
     st.session_state.o2 = "1.00"
     st.session_state.current_proposal = ""
+    st.session_state.bypass_odds = False
 
 # ==============================
 # DOUBLE CHANCE ANALYSIS FUNCTIONS
@@ -453,36 +462,91 @@ try:
 except:
     pm1 = pmX = pm2 = 0.33
 
-# ΒΕΛΤΙΩΣΗ: Μείωσε το max alpha στο 0.7 (70% βάρος στα stats, 30% στις αποδόσεις)
-max_alpha = 0.7
-alpha = min(max_alpha, total / 20) if total > 0 else 0
+# ==============================
+# ΕΛΕΓΧΟΣ ΣΥΜΦΩΝΙΑΣ ΣΤΑΤΙΣΤΙΚΩΝ - ΑΠΟΔΟΣΕΩΝ (ΝΕΟ!)
+# ==============================
+bypass_message = ""
+disagreement_detected = False
 
-# ΒΕΛΤΙΩΣΗ: Πιο ήπιο loss penalty (0.4)
-loss_penalty = 0.4
+if h_t >= 4 and a_t >= 4:  # Χρειαζόμαστε τουλάχιστον 4 ματς για αξιόπιστη σύγκριση
+    # Υπολογισμός πραγματικών ποσοστών από stats
+    real_1 = st.session_state.hw / h_t
+    real_2 = st.session_state.aw / a_t
+    real_X = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+    
+    # Υπολογισμός implied probabilities από αποδόσεις
+    implied_1 = 1/odd1
+    implied_X = 1/oddX
+    implied_2 = 1/odd2
+    implied_total = implied_1 + implied_X + implied_2
+    norm_implied_1 = implied_1 / implied_total
+    norm_implied_X = implied_X / implied_total
+    norm_implied_2 = implied_2 / implied_total
+    
+    # Έλεγχος διαφωνίας (αν διαφέρουν >20%)
+    if abs(real_1 - norm_implied_1) > 0.20:
+        disagreement_detected = True
+    if abs(real_X - norm_implied_X) > 0.20:
+        disagreement_detected = True
+    if abs(real_2 - norm_implied_2) > 0.20:
+        disagreement_detected = True
+    
+    # Αν υπάρχει διαφωνία, BYPASS τις αποδόσεις
+    if disagreement_detected:
+        st.session_state.bypass_odds = True
+        bypass_message = "🔴 **ΑΣΥΜΦΩΝΙΑ ΣΤΑΤΙΣΤΙΚΩΝ-ΑΠΟΔΟΣΕΩΝ**: Οι αποδόσεις δεν αντικατοπτρίζουν την πραγματική εικόνα. Η ανάλυση βασίζεται ΜΟΝΟ σε στατιστικά."
+    else:
+        st.session_state.bypass_odds = False
 
-# Υπολογισμός win ratios
-h_wr = (st.session_state.hw - (st.session_state.hl * loss_penalty)) / h_t if h_t > 0 else pm1
-a_wr = (st.session_state.aw - (st.session_state.al * loss_penalty)) / a_t if a_t > 0 else pm2
-
-# Υπολογισμός points
-home_points = st.session_state.hw * 3 + st.session_state.hd
-away_points = st.session_state.aw * 3 + st.session_state.ad
-
-# Μπόνους για καλύτερη ομάδα (πιο ήπιο)
-if h_t >= 10 and a_t >= 10:
-    if home_points > away_points * 1.2:
-        h_wr = h_wr * 1.1
-        a_wr = a_wr * 0.95
-    elif away_points > home_points * 1.2:
-        a_wr = a_wr * 1.1
-        h_wr = h_wr * 0.95
-
-# Υπολογισμός πιθανοτήτων
-p1 = alpha * h_wr + (1-alpha) * pm1
-p2 = alpha * a_wr + (1-alpha) * pm2
-
-p1, p2 = max(0.10, p1), max(0.10, p2)
-pX = max(0.01, 1 - p1 - p2)
+# ==============================
+# ΚΑΝΟΝΙΚΟ ΜΟΝΤΕΛΟ (με ή χωρίς bypass)
+# ==============================
+if st.session_state.bypass_odds:
+    # BYPASS - Χρησιμοποιούμε ΜΟΝΟ στατιστικά
+    p1 = st.session_state.hw / h_t if h_t > 0 else 0.33
+    p2 = st.session_state.aw / a_t if a_t > 0 else 0.33
+    pX = (st.session_state.hd + st.session_state.ad) / (h_t + a_t) if (h_t + a_t) > 0 else 0.34
+    
+    # Κανονικοποίηση
+    total_prob = p1 + pX + p2
+    if total_prob > 0:
+        p1 = p1 / total_prob
+        pX = pX / total_prob
+        p2 = p2 / total_prob
+    
+    # Τα pm1, pmX, pm2 για το γράφημα (από odds, αλλά δεν θα χρησιμοποιηθούν στο μοντέλο)
+    # Τα κρατάμε ως έχουν για το γράφημα σύγκρισης
+else:
+    # ΚΑΝΟΝΙΚΟ ΜΟΝΤΕΛΟ - 70% stats, 30% odds
+    max_alpha = 0.7
+    alpha = min(max_alpha, total / 20) if total > 0 else 0
+    
+    # ΒΕΛΤΙΩΣΗ: Πιο ήπιο loss penalty (0.4)
+    loss_penalty = 0.4
+    
+    # Υπολογισμός win ratios
+    h_wr = (st.session_state.hw - (st.session_state.hl * loss_penalty)) / h_t if h_t > 0 else pm1
+    a_wr = (st.session_state.aw - (st.session_state.al * loss_penalty)) / a_t if a_t > 0 else pm2
+    
+    # Υπολογισμός points
+    home_points = st.session_state.hw * 3 + st.session_state.hd
+    away_points = st.session_state.aw * 3 + st.session_state.ad
+    
+    # Μπόνους για καλύτερη ομάδα (πιο ήπιο)
+    if h_t >= 10 and a_t >= 10:
+        if home_points > away_points * 1.2:
+            h_wr = h_wr * 1.1
+            a_wr = a_wr * 0.95
+        elif away_points > home_points * 1.2:
+            a_wr = a_wr * 1.1
+            h_wr = h_wr * 0.95
+    
+    # Υπολογισμός πιθανοτήτων
+    p1 = alpha * h_wr + (1-alpha) * pm1
+    p2 = alpha * a_wr + (1-alpha) * pm2
+    
+    p1, p2 = max(0.10, p1), max(0.10, p2)
+    pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
 # ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ
@@ -516,7 +580,7 @@ if s > 0:
     p1, pX, p2 = p1/s, pX/s, p2/s
 
 # ==============================
-# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ (v17.4.0)
+# ΥΠΟΛΟΓΙΣΜΟΣ ΠΡΟΤΑΣΗΣ
 # ==============================
 # Δημιουργία λίστας με τα p1, pX, p2 από το μοντέλο
 stats_list = [
@@ -600,7 +664,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.0.0</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -614,7 +678,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.0.0</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
         </div>
@@ -622,7 +686,9 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-if warning:
+if bypass_message:
+    st.markdown(f'<div class="disagreement-box">{bypass_message}</div>', unsafe_allow_html=True)
+elif warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
 
 # ==============================
@@ -842,4 +908,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("Soccer Match Analyzer v3.0.0")
+st.caption("Soccer Match Analyzer v3.1.0 - Με αυτόματο εντοπισμό ασυμφωνίας αποδόσεων")
