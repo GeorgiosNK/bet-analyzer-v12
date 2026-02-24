@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Soccer Match Analyzer v3.1.0", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Soccer Match Analyzer v3.1.1", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -434,14 +434,14 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 🏠 Γηπεδούχος (εντός έδρας)")
-    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες στους τελευταίους 4 εντός έδρας αγώνες")
-    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες στους τελευταίους 4 εντός έδρας αγώνες")
-    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες στους τελευταίους 4 εντός έδρας αγώνες")
+    st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες σε όλους τους εντός έδρας αγώνες")
+    st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες σε όλους τους εντός έδρας αγώνες")
+    st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες σε όλους τους εντός έδρας αγώνες")
     
     st.markdown("### 🚀 Φιλοξενούμενος (εκτός έδρας)")
-    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες στους τελευταίους 4 εκτός έδρας αγώνες")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες στους τελευταίους 4 εκτός έδρας αγώνες")
-    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες στους τελευταίους 4 εκτός έδρας αγώνες")
+    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες σε όλους τους εκτός έδρας αγώνες")
+    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες σε όλους τους εκτός έδρας αγώνες")
+    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες σε όλους τους εκτός έδρας αγώνες")
 
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
@@ -463,7 +463,7 @@ except:
     pm1 = pmX = pm2 = 0.33
 
 # ==============================
-# ΕΛΕΓΧΟΣ ΣΥΜΦΩΝΙΑΣ ΣΤΑΤΙΣΤΙΚΩΝ - ΑΠΟΔΟΣΕΩΝ (ΝΕΟ!)
+# ΕΛΕΓΧΟΣ ΣΥΜΦΩΝΙΑΣ ΣΤΑΤΙΣΤΙΚΩΝ - ΑΠΟΔΟΣΕΩΝ
 # ==============================
 bypass_message = ""
 disagreement_detected = False
@@ -549,7 +549,7 @@ else:
     pX = max(0.01, 1 - p1 - p2)
 
 # ==============================
-# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ
+# ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΜΕ FIX ΓΙΑ ZERODIVISIONERROR)
 # ==============================
 if h_t > 0 and a_t > 0 and total >= 8:
     real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
@@ -561,8 +561,12 @@ if h_t > 0 and a_t > 0 and total >= 8:
         
         remaining = 1 - pX
         if remaining > 0:
-            p1 = p1 / (p1 + p2) * remaining
-            p2 = p2 / (p1 + p2) * remaining
+            if (p1 + p2) > 0:
+                p1 = p1 / (p1 + p2) * remaining
+                p2 = p2 / (p1 + p2) * remaining
+            else:
+                p1 = remaining * 0.5
+                p2 = remaining * 0.5
 
 real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
 real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
@@ -664,7 +668,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.0</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.1</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -678,7 +682,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.0</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.1</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
         </div>
@@ -908,4 +912,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("Soccer Match Analyzer v3.1.0 - Με αυτόματο εντοπισμό ασυμφωνίας αποδόσεων")
+st.caption("Soccer Match Analyzer v3.1.1 - Με διόρθωση σφάλματος διαίρεσης με μηδέν")
