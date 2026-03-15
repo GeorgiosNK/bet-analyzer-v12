@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Soccer Match Analyzer v3.1.1", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Soccer Match Analyzer v4.0", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX (Auto-select & Comma to Dot)
@@ -107,6 +107,14 @@ if 'hw' not in st.session_state:
     st.session_state.ad = 0
     st.session_state.al = 0
 
+if 'hw_total' not in st.session_state:
+    st.session_state.hw_total = 0
+    st.session_state.hd_total = 0
+    st.session_state.hl_total = 0
+    st.session_state.aw_total = 0
+    st.session_state.ad_total = 0
+    st.session_state.al_total = 0
+
 if 'o1' not in st.session_state:
     st.session_state.o1 = "1.00"
     st.session_state.ox = "1.00"
@@ -125,6 +133,12 @@ def reset_all():
     st.session_state.aw = 0
     st.session_state.ad = 0
     st.session_state.al = 0
+    st.session_state.hw_total = 0
+    st.session_state.hd_total = 0
+    st.session_state.hl_total = 0
+    st.session_state.aw_total = 0
+    st.session_state.ad_total = 0
+    st.session_state.al_total = 0
     st.session_state.o1 = "1.00"
     st.session_state.ox = "1.00"
     st.session_state.o2 = "1.00"
@@ -433,15 +447,28 @@ with st.sidebar:
     o2_i = st.text_input("Διπλό (2)", key="o2")
     
     st.markdown("---")
-    st.markdown("### 🏠 Γηπεδούχος (εντός έδρας)")
+    st.markdown("### 🏠 Γηπεδούχος (τελευταίοι 5 εντός)")
     st.number_input("Νίκες", 0, 100, key="hw", help="Νίκες στους 5 τελευταίους εντός έδρας αγώνες")
     st.number_input("Ισοπαλίες", 0, 100, key="hd", help="Ισοπαλίες στους 5 τελευταίους εντός έδρας αγώνες")
     st.number_input("Ήττες", 0, 100, key="hl", help="Ήττες στους 5 τελευταίους εντός έδρας αγώνες")
     
-    st.markdown("### 🚀 Φιλοξενούμενος (εκτός έδρας)")
-    st.number_input("Νίκες", 0, 100, key="aw", help="Νίκες στους 5 τελευταίους εκτός έδρας αγώνες")
-    st.number_input("Ισοπαλίες", 0, 100, key="ad", help="Ισοπαλίες στους 5 τελευταίους εκτός έδρας αγώνες")
-    st.number_input("Ήττες", 0, 100, key="al", help="Ήττες στους 5 τελευταίους εκτός έδρας αγώνες")
+    st.markdown("### 🚀 Φιλοξενούμενος (τελευταίοι 5 εκτός)")
+    st.number_input("Νίκες εκτός", 0, 100, key="aw", help="Νίκες στους 5 τελευταίους εκτός έδρας αγώνες")
+    st.number_input("Ισοπαλίες εκτός", 0, 100, key="ad", help="Ισοπαλίες στους 5 τελευταίους εκτός έδρας αγώνες")
+    st.number_input("Ήττες εκτός", 0, 100, key="al", help="Ήττες στους 5 τελευταίους εκτός έδρας αγώνες")
+    
+    st.markdown("---")
+    st.markdown("### 📊 ΣΥΝΟΛΙΚΑ ΣΤΑΤΙΣΤΙΚΑ")
+    
+    st.markdown("#### 🏠 Γηπεδούχος (Σύνολο εντός)")
+    st.number_input("Νίκες (Σύνολο)", 0, 500, key="hw_total", help="Σύνολο νικών εντός έδρας")
+    st.number_input("Ισοπαλίες (Σύνολο)", 0, 500, key="hd_total", help="Σύνολο ισοπαλιών εντός έδρας")
+    st.number_input("Ήττες (Σύνολο)", 0, 500, key="hl_total", help="Σύνολο ηττών εντός έδρας")
+    
+    st.markdown("#### 🚀 Φιλοξενούμενος (Σύνολο εκτός)")
+    st.number_input("Νίκες εκτός (Σύνολο)", 0, 500, key="aw_total", help="Σύνολο νικών εκτός έδρας")
+    st.number_input("Ισοπαλίες εκτός (Σύνολο)", 0, 500, key="ad_total", help="Σύνολο ισοπαλιών εκτός έδρας")
+    st.number_input("Ήττες εκτός (Σύνολο)", 0, 500, key="al_total", help="Σύνολο ηττών εκτός έδρας")
 
 odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 
@@ -451,6 +478,44 @@ odd1, oddX, odd2 = sf(o1_i), sf(ox_i), sf(o2_i)
 h_t = st.session_state.hw + st.session_state.hd + st.session_state.hl
 a_t = st.session_state.aw + st.session_state.ad + st.session_state.al
 total = h_t + a_t
+
+# ΝΕΟ: Συνολικά totals
+h_total_t = st.session_state.hw_total + st.session_state.hd_total + st.session_state.hl_total
+a_total_t = st.session_state.aw_total + st.session_state.ad_total + st.session_state.al_total
+total_games_all = h_total_t + a_total_t
+
+# Αν υπάρχουν συνολικά στατιστικά, τα συνδυάζουμε (70% τελευταία 5, 30% σύνολο)
+use_total_stats = h_total_t >= 10 and a_total_t >= 10
+
+if use_total_stats:
+    # Ποσοστά από σύνολο
+    h_win_total = st.session_state.hw_total / h_total_t if h_total_t > 0 else 0
+    h_draw_total = st.session_state.hd_total / h_total_t if h_total_t > 0 else 0
+    a_win_total = st.session_state.aw_total / a_total_t if a_total_t > 0 else 0
+    a_draw_total = st.session_state.ad_total / a_total_t if a_total_t > 0 else 0
+
+    # Ποσοστά από τελευταία 5
+    h_win_last5 = st.session_state.hw / h_t if h_t > 0 else 0
+    h_draw_last5 = st.session_state.hd / h_t if h_t > 0 else 0
+    a_win_last5 = st.session_state.aw / a_t if a_t > 0 else 0
+    a_draw_last5 = st.session_state.ad / a_t if a_t > 0 else 0
+
+    # Συνδυασμός (70% τελευταία 5, 30% σύνολο)
+    h_win_combined = 0.7 * h_win_last5 + 0.3 * h_win_total
+    h_draw_combined = 0.7 * h_draw_last5 + 0.3 * h_draw_total
+    a_win_combined = 0.7 * a_win_last5 + 0.3 * a_win_total
+    a_draw_combined = 0.7 * a_draw_last5 + 0.3 * a_draw_total
+
+    # Μετατροπή σε αριθμούς για το μοντέλο (για χρήση στο υπόλοιπο μοντέλο)
+    hw_combined = h_win_combined * h_t if h_t > 0 else 0
+    hd_combined = h_draw_combined * h_t if h_t > 0 else 0
+    aw_combined = a_win_combined * a_t if a_t > 0 else 0
+    ad_combined = a_draw_combined * a_t if a_t > 0 else 0
+else:
+    hw_combined = st.session_state.hw
+    hd_combined = st.session_state.hd
+    aw_combined = st.session_state.aw
+    ad_combined = st.session_state.ad
 
 # Ασφαλής υπολογισμός implied probabilities
 try:
@@ -469,19 +534,19 @@ bypass_message = ""
 disagreement_detected = False
 
 if h_t >= 4 and a_t >= 4:  # Χρειαζόμαστε τουλάχιστον 4 ματς για αξιόπιστη σύγκριση
-    # Υπολογισμός πραγματικών ποσοστών από stats
-    real_1 = st.session_state.hw / h_t
-    real_2 = st.session_state.aw / a_t
-    real_X = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
+    # Υπολογισμός πραγματικών ποσοστών από stats (με χρήση combined)
+    real_1 = hw_combined / h_t if h_t > 0 else 0
+    real_2 = aw_combined / a_t if a_t > 0 else 0
+    real_X = (hd_combined + ad_combined) / (h_t + a_t) if (h_t + a_t) > 0 else 0
     
     # Υπολογισμός implied probabilities από αποδόσεις
     implied_1 = 1/odd1
     implied_X = 1/oddX
     implied_2 = 1/odd2
     implied_total = implied_1 + implied_X + implied_2
-    norm_implied_1 = implied_1 / implied_total
-    norm_implied_X = implied_X / implied_total
-    norm_implied_2 = implied_2 / implied_total
+    norm_implied_1 = implied_1 / implied_total if implied_total > 0 else 0.33
+    norm_implied_X = implied_X / implied_total if implied_total > 0 else 0.33
+    norm_implied_2 = implied_2 / implied_total if implied_total > 0 else 0.33
     
     # Έλεγχος διαφωνίας (αν διαφέρουν >20%)
     if abs(real_1 - norm_implied_1) > 0.20:
@@ -502,10 +567,10 @@ if h_t >= 4 and a_t >= 4:  # Χρειαζόμαστε τουλάχιστον 4 �
 # ΚΑΝΟΝΙΚΟ ΜΟΝΤΕΛΟ (με ή χωρίς bypass)
 # ==============================
 if st.session_state.bypass_odds:
-    # BYPASS - Χρησιμοποιούμε ΜΟΝΟ στατιστικά
-    p1 = st.session_state.hw / h_t if h_t > 0 else 0.33
-    p2 = st.session_state.aw / a_t if a_t > 0 else 0.33
-    pX = (st.session_state.hd + st.session_state.ad) / (h_t + a_t) if (h_t + a_t) > 0 else 0.34
+    # BYPASS - Χρησιμοποιούμε ΜΟΝΟ στατιστικά (combined)
+    p1 = hw_combined / h_t if h_t > 0 else 0.33
+    p2 = aw_combined / a_t if a_t > 0 else 0.33
+    pX = (hd_combined + ad_combined) / (h_t + a_t) if (h_t + a_t) > 0 else 0.34
     
     # Κανονικοποίηση
     total_prob = p1 + pX + p2
@@ -513,20 +578,17 @@ if st.session_state.bypass_odds:
         p1 = p1 / total_prob
         pX = pX / total_prob
         p2 = p2 / total_prob
-    
-    # Τα pm1, pmX, pm2 για το γράφημα (από odds, αλλά δεν θα χρησιμοποιηθούν στο μοντέλο)
-    # Τα κρατάμε ως έχουν για το γράφημα σύγκρισης
 else:
-    # ΚΑΝΟΝΙΚΟ ΜΟΝΤΕΛΟ - 70% stats, 30% odds
+    # ΚΑΝΟΝΙΚΟ ΜΟΝΤΕΛΟ - 70% stats (combined), 30% odds
     max_alpha = 0.7
     alpha = min(max_alpha, total / 20) if total > 0 else 0
     
     # ΒΕΛΤΙΩΣΗ: Πιο ήπιο loss penalty (0.4)
     loss_penalty = 0.4
     
-    # Υπολογισμός win ratios
-    h_wr = (st.session_state.hw - (st.session_state.hl * loss_penalty)) / h_t if h_t > 0 else pm1
-    a_wr = (st.session_state.aw - (st.session_state.al * loss_penalty)) / a_t if a_t > 0 else pm2
+    # Υπολογισμός win ratios με combined stats
+    h_wr = (hw_combined - (st.session_state.hl * loss_penalty)) / h_t if h_t > 0 else pm1
+    a_wr = (aw_combined - (st.session_state.al * loss_penalty)) / a_t if a_t > 0 else pm2
     
     # Υπολογισμός points
     home_points = st.session_state.hw * 3 + st.session_state.hd
@@ -552,8 +614,8 @@ else:
 # ΠΡΑΓΜΑΤΙΚΗ ΙΣΟΠΑΛΙΑ ΑΠΟ ΣΤΑΤΙΣΤΙΚΑ (ΜΕ FIX ΓΙΑ ZERODIVISIONERROR)
 # ==============================
 if h_t > 0 and a_t > 0 and total >= 8:
-    real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
-    away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0.25
+    real_draw_pct = (hd_combined + ad_combined) / (h_t + a_t) if (h_t + a_t) > 0 else 0.25
+    away_draw_pct = ad_combined / a_t if a_t > 0 else 0.25
     
     if real_draw_pct < 0.18 or away_draw_pct < 0.10:
         reduction = 0.35 if real_draw_pct < 0.15 else 0.20
@@ -568,8 +630,8 @@ if h_t > 0 and a_t > 0 and total >= 8:
                 p1 = remaining * 0.5
                 p2 = remaining * 0.5
 
-real_h_draw = st.session_state.hd / h_t if h_t > 0 else 0.25
-real_a_draw = st.session_state.ad / a_t if a_t > 0 else 0.25
+real_h_draw = hd_combined / h_t if h_t > 0 else 0.25
+real_a_draw = ad_combined / a_t if a_t > 0 else 0.25
 avg_draw = (real_h_draw + real_a_draw) / 2
 
 # Draw Normalization (πιο ήπια)
@@ -603,7 +665,7 @@ main_point = sorted_stats[0][0]
 top_two = sorted_stats[0][0] + sorted_stats[1][0]
 top_two_prob = (sorted_stats[0][1] + sorted_stats[1][1]) * 100
 
-# Χρώμα για το ποσοστό της διπλής ευκαιρίας (ίδια λογική με το confidence)
+# Χρώμα για το ποσοστό της διπλής ευκαιρίας
 if top_two_prob >= 65:
     dc_color = "#2ecc71"  # Πράσινο
 elif top_two_prob >= 45:
@@ -668,7 +730,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 if total >= 6:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.1</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v4.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two} <span class="double-percent" style="color: {dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -677,12 +739,20 @@ if total >= 6:
         <div style="margin-top:15px; font-family: monospace; font-size: 1rem; color: #555;">
             [MODEL]: 1: {p1*100:.1f}% | X: {pX*100:.1f}% | 2: {p2*100:.1f}%
         </div>
-    </div>
     """, unsafe_allow_html=True)
+    
+    if use_total_stats:
+        st.markdown(f"""
+        <div style="font-size:0.9rem; color:#666; margin-top:5px; text-align:center;">
+            📈 Συνδυασμός: 70% τελευταία 5 + 30% σύνολο ({total_games_all} συνολικοί αγώνες)
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v3.1.1</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v4.0</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
         </div>
@@ -776,8 +846,8 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     
     if h_t > 0 and a_t > 0 and total >= 6:
         model_draw_pct = pX * 100
-        real_draw_pct = (st.session_state.hd + st.session_state.ad) / (h_t + a_t)
-        away_draw_pct = st.session_state.ad / a_t if a_t > 0 else 0
+        real_draw_pct = (hd_combined + ad_combined) / (h_t + a_t) if (h_t + a_t) > 0 else 0
+        away_draw_pct = ad_combined / a_t if a_t > 0 else 0
         st.markdown(f"**📊 Ποσοστό Χ στο μοντέλο:** {model_draw_pct:.1f}%")
         st.markdown(f"**📊 Πραγματικό ποσοστό ισοπαλίας:** {real_draw_pct*100:.1f}%")
         st.markdown(f"**📊 Φιλοξενούμενος ισοπαλίες εκτός:** {away_draw_pct*100:.1f}%")
@@ -852,9 +922,9 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 f"{odd1:.2f}", 
                 f"{oddX:.2f}", 
                 f"{odd2:.2f}",
-                f"{implied_1X:.2f}",
-                f"{implied_X2:.2f}", 
-                f"{implied_12:.2f}"
+                f"{implied_1X:.2f}" if implied_1X > 0 else "-",
+                f"{implied_X2:.2f}" if implied_X2 > 0 else "-", 
+                f"{implied_12:.2f}" if implied_12 > 0 else "-"
             ],
             'Μοντέλο': [
                 f"{p1*100:.1f}%", 
@@ -865,20 +935,20 @@ with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", ex
                 f"{prob_12*100:.1f}%"
             ],
             'Bookie': [
-                f"{1/odd1*100:.1f}%", 
-                f"{1/oddX*100:.1f}%", 
-                f"{1/odd2*100:.1f}%",
-                f"{1/implied_1X*100:.1f}%",
-                f"{1/implied_X2*100:.1f}%", 
-                f"{1/implied_12*100:.1f}%"
+                f"{1/odd1*100:.1f}%" if odd1 > 0 else "-", 
+                f"{1/oddX*100:.1f}%" if oddX > 0 else "-", 
+                f"{1/odd2*100:.1f}%" if odd2 > 0 else "-",
+                f"{1/implied_1X*100:.1f}%" if implied_1X > 0 else "-",
+                f"{1/implied_X2*100:.1f}%" if implied_X2 > 0 else "-", 
+                f"{1/implied_12*100:.1f}%" if implied_12 > 0 else "-"
             ],
             'Διαφορά': [
-                f"{p1*100 - 1/odd1*100:+.1f}%", 
-                f"{pX*100 - 1/oddX*100:+.1f}%", 
-                f"{p2*100 - 1/odd2*100:+.1f}%",
-                f"{prob_1X*100 - 1/implied_1X*100:+.1f}%",
-                f"{prob_X2*100 - 1/implied_X2*100:+.1f}%", 
-                f"{prob_12*100 - 1/implied_12*100:+.1f}%"
+                f"{p1*100 - 1/odd1*100:+.1f}%" if odd1 > 0 else "-", 
+                f"{pX*100 - 1/oddX*100:+.1f}%" if oddX > 0 else "-", 
+                f"{p2*100 - 1/odd2*100:+.1f}%" if odd2 > 0 else "-",
+                f"{prob_1X*100 - 1/implied_1X*100:+.1f}%" if implied_1X > 0 else "-",
+                f"{prob_X2*100 - 1/implied_X2*100:+.1f}%" if implied_X2 > 0 else "-", 
+                f"{prob_12*100 - 1/implied_12*100:+.1f}%" if implied_12 > 0 else "-"
             ]
         }
         
@@ -912,4 +982,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.caption("Soccer Match Analyzer v3.1.1 - Με διόρθωση σφάλματος διαίρεσης με μηδέν")
+st.caption("Soccer Match Analyzer v4.0 - Με ενσωμάτωση συνολικών στατιστικών (70% τελευταία 5 + 30% σύνολο)")
