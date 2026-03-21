@@ -538,6 +538,12 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
         smart_label = " ⚡ Smart DC" if smart_dc else ""
 
         st.markdown("### 🎯 Κύρια Πρόταση")
+
+        main_dc_odd_str = f"{main_dc_odd:.2f}" if main_dc_odd>0 else "—"
+        val_color = '2ecc71' if main_dc_val>5 else 'e74c3c' if main_dc_val<-5 else '95a5a6'
+        val_str = f'+{main_dc_val:.1f}% value' if main_dc_val>0 else f'{main_dc_val:.1f}% value'
+        smart_extra = f" | <b>{sorted_stats[2][0]}</b> ({sorted_stats[2][1]*100:.1f}%) πολύ κοντά!" if smart_dc else ""
+
         st.markdown(f"""
         <div class="dc-card" style="background:#e8f0fe;border-left-color:#1e3c72;border-left-width:6px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -549,16 +555,13 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                     <span style="font-size:0.85rem;color:#666;margin-left:8px;">{smart_label}</span>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-size:1.8rem;font-weight:bold;">
-                        {f"{main_dc_odd:.2f}" if main_dc_odd>0 else "—"}</div>
-                    <div style="font-size:0.9rem;color:#{'2ecc71' if main_dc_val>5 else 'e74c3c' if main_dc_val<-5 else '95a5a6'};">
-                        {f'+{main_dc_val:.1f}% value' if main_dc_val>0 else f'{main_dc_val:.1f}% value'}</div>
+                    <div style="font-size:1.8rem;font-weight:bold;">{main_dc_odd_str}</div>
+                    <div style="font-size:0.9rem;color:#{val_color};">{val_str}</div>
                 </div>
             </div>
             <div style="margin-top:8px;color:#34495e;font-size:0.95rem;">
                 📌 Κύριο: <b>{main_point}</b> ({sorted_stats[0][1]*100:.1f}%) |
-                Κάλυψη: <b>{sorted_stats[1][0]}</b> ({sorted_stats[1][1]*100:.1f}%)
-                {'| <b>'+sorted_stats[2][0]+'</b> ('+f"{sorted_stats[2][1]*100:.1f}%) πολύ κοντά!" if smart_dc else ''}
+                Κάλυψη: <b>{sorted_stats[1][0]}</b> ({sorted_stats[1][1]*100:.1f}%){smart_extra}
             </div>
         </div>""", unsafe_allow_html=True)
 
