@@ -591,21 +591,24 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
         else:
             # [2] Εμφάνιση DC αποδόσεων όταν δεν υπάρχουν opportunities
             st.markdown("### 📊 Αποδόσεις Double Chance")
+            d1X = f"{i1X:.2f}" if i1X>0 else "—"
+            dX2 = f"{iX2:.2f}" if iX2>0 else "—"
+            d12 = f"{i12:.2f}" if i12>0 else "—"
             st.markdown(f"""
             <div style="display:flex;gap:10px;margin:10px 0;">
                 <div style="flex:1;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center;">
                     <div style="font-size:1.3rem;font-weight:bold;color:#1e3c72;">1X</div>
-                    <div style="font-size:1.6rem;font-weight:bold;">{i1X:.2f if i1X>0 else '—'}</div>
+                    <div style="font-size:1.6rem;font-weight:bold;">{d1X}</div>
                     <div style="font-size:0.9rem;color:#666;">{(p1+pX)*100:.1f}%</div>
                 </div>
                 <div style="flex:1;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center;">
                     <div style="font-size:1.3rem;font-weight:bold;color:#1e3c72;">X2</div>
-                    <div style="font-size:1.6rem;font-weight:bold;">{iX2:.2f if iX2>0 else '—'}</div>
+                    <div style="font-size:1.6rem;font-weight:bold;">{dX2}</div>
                     <div style="font-size:0.9rem;color:#666;">{(pX+p2)*100:.1f}%</div>
                 </div>
                 <div style="flex:1;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center;">
                     <div style="font-size:1.3rem;font-weight:bold;color:#1e3c72;">12</div>
-                    <div style="font-size:1.6rem;font-weight:bold;">{i12:.2f if i12>0 else '—'}</div>
+                    <div style="font-size:1.6rem;font-weight:bold;">{d12}</div>
                     <div style="font-size:0.9rem;color:#666;">{(p1+p2)*100:.1f}%</div>
                 </div>
             </div>""", unsafe_allow_html=True)
