@@ -390,8 +390,17 @@ if total >= 6:
     p2 = alpha * stat_p2 + (1-alpha) * pm2
     p1=max(0.05,p1); pX=max(0.05,pX); p2=max(0.05,p2)
     s=p1+pX+p2; p1,pX,p2=p1/s,pX/s,p2/s
+
+elif total == 0:
+    # Μόνο αποδόσεις — χωρίς στατιστικά
+    p1, pX, p2 = pm1, pmX, pm2
+    odds_weight, trust_level, trust_msg = 1.0, "", ""
+    trust_bg, trust_fg = "#e2e3e5", "#383d41"
+    stat_p1, stat_pX, stat_p2 = pm1, pmX, pm2
+    hist_factor = 1.0
+
 else:
-    # Ανεπαρκή δεδομένα — χρησιμοποιούμε μόνο αποδόσεις
+    # 1-5 αγώνες — ανεπαρκή στατιστικά
     p1, pX, p2 = pm1, pmX, pm2
     odds_weight, trust_level, trust_msg = 1.0, "", ""
     trust_bg, trust_fg = "#e2e3e5", "#383d41"
@@ -434,10 +443,15 @@ conf    = 0
 color   = "#95a5a6"
 
 if total < 6:
-    main_point   = "🚫"
-    top_two      = ""
-    top_two_prob = 0
-    warning      = "⚠️ ΑΝΕΠΑΡΚΗ ΣΤΑΤΙΣΤΙΚΑ: Χρειάζονται τουλάχιστον 6 παιχνίδια"
+    if total == 0:
+        # Μόνο αποδόσεις
+        main_point   = main_point  # κρατάμε την πρόταση από αποδόσεις
+        warning      = "📊 ΜΟΝΟ ΑΠΟΔΟΣΕΙΣ: Δεν έχουν εισαχθεί στατιστικά — πρόταση βάσει αποδόσεων μόνο"
+    else:
+        main_point   = "🚫"
+        top_two      = ""
+        top_two_prob = 0
+        warning      = "⚠️ ΑΝΕΠΑΡΚΗ ΣΤΑΤΙΣΤΙΚΑ: Χρειάζονται τουλάχιστον 6 παιχνίδια"
 else:
     conf  = calculate_confidence(p1, pX, p2, total)
     if total < 10: conf = min(conf, 60)
@@ -456,8 +470,9 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 # ==============================
 # UI OUTPUT — MAIN CARD
 # ==============================
-if total >= 6:
-    smart_dc_label = f'<div style="font-size:0.85rem;color:#8e44ad;margin-top:5px;">⚡ Smart DC: 2ο &amp; 3ο outcome πολύ κοντά ({gap_2nd_3rd*100:.1f}% διαφορά)</div>' if smart_dc else ''
+if total >= 6 or total == 0:
+    smart_dc_label = f'<div style="font-size:0.85rem;color:#8e44ad;margin-top:5px;">⚡ Ισοδύναμα Outcomes: X &amp; {sorted_stats[2][0]} πολύ κοντά ({gap_2nd_3rd*100:.1f}% διαφορά)</div>' if smart_dc else ''
+    odds_only_label = '<div style="font-size:0.85rem;color:#e67e22;margin-top:5px;">📊 Πρόταση βάσει αποδόσεων μόνο</div>' if total == 0 else ''
     st.markdown(f"""
     <div class="result-card">
         <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.5</div>
@@ -470,8 +485,9 @@ if total >= 6:
             [MODEL]: 1: {p1*100:.1f}% | X: {pX*100:.1f}% | 2: {p2*100:.1f}%
         </div>
         {smart_dc_label}
+        {odds_only_label}
     """, unsafe_allow_html=True)
-    if use_total_stats:
+    if use_total_stats and total >= 6:
         st.markdown(f"""
         <div style="font-size:0.9rem;color:#666;margin-top:5px;text-align:center;">
             📈 Συνδυασμός: 70% τελευταία 5 + 30% σύνολο ({total_games_all} αγώνες)
@@ -662,121 +678,143 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
 # ANALYTICAL EXPLANATION
 # ==============================
 with st.expander("🔍 Αναλυτική Εξήγηση Πρόβλεψης", expanded=False):
-    if total >= 6:
-        metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
-        col1, col2 = st.columns(2)
+    if total >= 6 or total == 0:
+        if total == 0:
+            # Μόνο αποδόσεις — εμφάνισε μόνο Fair Odds
+            st.markdown("### 💰 Fair Odds — Τι Λένε οι Αποδόσεις")
+            st.info("ℹ️ Δεν έχουν εισαχθεί στατιστικά — εμφανίζεται μόνο ανάλυση αποδόσεων.")
+        else:
+            metrics = calculate_key_metrics(p1, pX, p2, odd1, oddX, odd2)
+            col1, col2 = st.columns(2)
 
-        with col1:
-            st.markdown("### 📋 Παράγοντες Πρόβλεψης")
-            h_da = hd_c/h_t if h_t>0 else 0
-            a_da = ad_c/a_t if a_t>0 else 0
-            st.markdown(f"- 🤝 **Γηπεδούχος Draw%:** {h_da*100:.0f}%")
-            st.markdown(f"- 🤝 **Φιλοξενούμενος Draw%:** {a_da*100:.0f}%")
-            st.markdown(f"- 📊 **Ιστορικό Draw Factor:** {hist_factor:.2f}")
-            st.markdown(f"- 📊 **Odds Trust:** {trust_level} ({(1-odds_weight)*100:.0f}% stats)")
+            with col1:
+                st.markdown("### 📋 Παράγοντες Πρόβλεψης")
+                h_da = hd_c/h_t if h_t>0 else 0
+                a_da = ad_c/a_t if a_t>0 else 0
+                st.markdown(f"- 🤝 **Γηπεδούχος Draw%:** {h_da*100:.0f}%")
+                st.markdown(f"- 🤝 **Φιλοξενούμενος Draw%:** {a_da*100:.0f}%")
+                st.markdown(f"- 📊 **Ιστορικό Draw Factor:** {hist_factor:.2f}")
+                st.markdown(f"- 📊 **Odds Trust:** {trust_level} ({(1-odds_weight)*100:.0f}% stats)")
 
-        with col2:
-            st.markdown("### ⚖️ Value Analysis")
-            vm = {'home_edge':'Άσος (1)','draw_edge':'Ισοπαλία (Χ)','away_edge':'Διπλό (2)'}
-            va = metrics.get('value_amount',0)
-            bv = metrics.get('best_value','home_edge')
-            if abs(va)>5:
-                icon = "✅" if va>0 else "❌"
-                lbl  = "Value bet" if va>0 else "Υπερτιμημένο"
-                st.markdown(f"{icon} **{lbl}**: {va:+.1f}% στο {vm[bv]}")
-            else:
-                st.markdown(f"⚖️ **Δίκαιη απόδοση**: {va:+.1f}% διαφορά")
+            with col2:
+                st.markdown("### ⚖️ Value Analysis")
+                vm = {'home_edge':'Άσος (1)','draw_edge':'Ισοπαλία (Χ)','away_edge':'Διπλό (2)'}
+                va = metrics.get('value_amount',0)
+                bv = metrics.get('best_value','home_edge')
+                if abs(va)>5:
+                    icon = "✅" if va>0 else "❌"
+                    lbl  = "Value bet" if va>0 else "Υπερτιμημένο"
+                    st.markdown(f"{icon} **{lbl}**: {va:+.1f}% στο {vm[bv]}")
+                else:
+                    st.markdown(f"⚖️ **Δίκαιη απόδοση**: {va:+.1f}% διαφορά")
 
-        st.markdown("---")
-        st.markdown("### 📈 Σύγκριση Πιθανοτήτων")
-        prob_1X=p1+pX; prob_X2=pX+p2; prob_12=p1+p2
+            st.markdown("---")
+            st.markdown("### 📈 Σύγκριση Πιθανοτήτων")
+            prob_1X=p1+pX; prob_X2=pX+p2; prob_12=p1+p2
+            i1X=1/(1/odd1+1/oddX) if odd1>1.01 and oddX>1.01 else 0
+            iX2=1/(1/oddX+1/odd2) if oddX>1.01 and odd2>1.01 else 0
+            i12=1/(1/odd1+1/odd2) if odd1>1.01 and odd2>1.01 else 0
+
+            comp = {
+                'Σημείο':  ['1','X','2','1X','X2','12'],
+                'Απόδοση': [f"{odd1:.2f}",f"{oddX:.2f}",f"{odd2:.2f}",
+                            f"{i1X:.2f}" if i1X else "-",
+                            f"{iX2:.2f}" if iX2 else "-",
+                            f"{i12:.2f}" if i12 else "-"],
+                'Μοντέλο': [f"{p1*100:.1f}%",f"{pX*100:.1f}%",f"{p2*100:.1f}%",
+                            f"{prob_1X*100:.1f}%",f"{prob_X2*100:.1f}%",f"{prob_12*100:.1f}%"],
+                'Bookie':  [f"{1/odd1*100:.1f}%",f"{1/oddX*100:.1f}%",f"{1/odd2*100:.1f}%",
+                            f"{1/i1X*100:.1f}%" if i1X else "-",
+                            f"{1/iX2*100:.1f}%" if iX2 else "-",
+                            f"{1/i12*100:.1f}%" if i12 else "-"],
+                'Διαφορά': [f"{p1*100-1/odd1*100:+.1f}%",
+                            f"{pX*100-1/oddX*100:+.1f}%",
+                            f"{p2*100-1/odd2*100:+.1f}%",
+                            f"{prob_1X*100-1/i1X*100:+.1f}%" if i1X else "-",
+                            f"{prob_X2*100-1/iX2*100:+.1f}%" if iX2 else "-",
+                            f"{prob_12*100-1/i12*100:+.1f}%" if i12 else "-"],
+            }
+            st.dataframe(comp, use_container_width=True, hide_index=True)
+
+            st.markdown("---")
+            st.markdown("### 💰 Fair Odds — Τι Έπρεπε να Είναι οι Αποδόσεις")
+
+            sp1, spX, sp2 = stat_p1, stat_pX, stat_p2
+
+            def fair_odd(p):
+                return f"{1/p:.2f}" if p > 0.01 else "-"
+
+            def value_icon(bookie, fair_p):
+                if fair_p <= 0.01: return "—"
+                v = (bookie / (1/fair_p) - 1) * 100
+                if v > 20:    return f"🔥 +{v:.0f}%"
+                elif v > 10:  return f"✅ +{v:.0f}%"
+                elif v < -10: return f"❌ {v:.0f}%"
+                else:         return f"⚖️ {v:+.0f}%"
+
+            margin = (1/odd1 + 1/oddX + 1/odd2 - 1) * 100
+
+            fair_data = {
+                'Σημείο':         ['1', 'X', '2'],
+                'Bookie':         [f"{odd1:.2f}", f"{oddX:.2f}", f"{odd2:.2f}"],
+                'Fair (μοντέλο)': [fair_odd(p1), fair_odd(pX), fair_odd(p2)],
+                'Fair (stats)':   [fair_odd(sp1), fair_odd(spX), fair_odd(sp2)],
+                'Value vs model': [value_icon(odd1,p1), value_icon(oddX,pX), value_icon(odd2,p2)],
+                'Value vs stats': [value_icon(odd1,sp1), value_icon(oddX,spX), value_icon(odd2,sp2)],
+            }
+            st.dataframe(fair_data, use_container_width=True, hide_index=True)
+            st.caption(f"Bookie margin: {margin:.1f}% | 🔥 >20% value | ✅ 10-20% value | ❌ overpriced | ⚖️ fair")
+
+            best_val = max(
+                [(odd1,p1,'1'),(oddX,pX,'X'),(odd2,p2,'2')],
+                key=lambda x: (x[0]/(1/x[1])-1) if x[1]>0.01 else -99
+            )
+            best_val_stats = max(
+                [(odd1,sp1,'1'),(oddX,spX,'X'),(odd2,sp2,'2')],
+                key=lambda x: (x[0]/(1/x[1])-1) if x[1]>0.01 else -99
+            )
+            val_pct   = (best_val[0]/(1/best_val[1])-1)*100 if best_val[1]>0.01 else 0
+            val_pct_s = (best_val_stats[0]/(1/best_val_stats[1])-1)*100 if best_val_stats[1]>0.01 else 0
+
+            if val_pct_s > 20:
+                st.markdown(f"""
+                <div style="background:#fff3cd;border:2px solid #f39c12;border-radius:10px;
+                            padding:12px;margin-top:10px;text-align:center;font-weight:bold;">
+                    🔥 VALUE ALERT: Το <b>{best_val_stats[2]}</b> ({best_val_stats[0]:.2f})
+                    έχει +{val_pct_s:.0f}% value βάσει stats!
+                    Fair τιμή: {fair_odd(best_val_stats[1])}
+                </div>""", unsafe_allow_html=True)
+            elif val_pct > 10:
+                st.markdown(f"""
+                <div style="background:#d4edda;border:2px solid #2ecc71;border-radius:10px;
+                            padding:12px;margin-top:10px;text-align:center;font-weight:bold;">
+                    ✅ VALUE: Το <b>{best_val[2]}</b> ({best_val[0]:.2f})
+                    έχει +{val_pct:.0f}% value βάσει μοντέλου.
+                    Fair τιμή: {fair_odd(best_val[1])}
+                </div>""", unsafe_allow_html=True)
+
+            st.markdown("---")
+            st.markdown("### 💡 Συμβουλή Διαχείρισης Ρίσκου")
+            st.info(get_risk_advice(conf, total, top_two_prob, main_point, top_two))
+    elif total == 0:
+        # Fair Odds μόνο βάσει αποδόσεων
+        st.markdown("### 💰 Fair Odds — Ανάλυση Αποδόσεων")
         i1X=1/(1/odd1+1/oddX) if odd1>1.01 and oddX>1.01 else 0
         iX2=1/(1/oddX+1/odd2) if oddX>1.01 and odd2>1.01 else 0
         i12=1/(1/odd1+1/odd2) if odd1>1.01 and odd2>1.01 else 0
-
-        comp = {
+        prob_1X=pm1+pmX; prob_X2=pmX+pm2; prob_12=pm1+pm2
+        comp_odds = {
             'Σημείο':  ['1','X','2','1X','X2','12'],
             'Απόδοση': [f"{odd1:.2f}",f"{oddX:.2f}",f"{odd2:.2f}",
                         f"{i1X:.2f}" if i1X else "-",
                         f"{iX2:.2f}" if iX2 else "-",
                         f"{i12:.2f}" if i12 else "-"],
-            'Μοντέλο': [f"{p1*100:.1f}%",f"{pX*100:.1f}%",f"{p2*100:.1f}%",
-                        f"{prob_1X*100:.1f}%",f"{prob_X2*100:.1f}%",f"{prob_12*100:.1f}%"],
-            'Bookie':  [f"{1/odd1*100:.1f}%",f"{1/oddX*100:.1f}%",f"{1/odd2*100:.1f}%",
-                        f"{1/i1X*100:.1f}%" if i1X else "-",
-                        f"{1/iX2*100:.1f}%" if iX2 else "-",
-                        f"{1/i12*100:.1f}%" if i12 else "-"],
-            'Διαφορά': [f"{p1*100-1/odd1*100:+.1f}%",
-                        f"{pX*100-1/oddX*100:+.1f}%",
-                        f"{p2*100-1/odd2*100:+.1f}%",
-                        f"{prob_1X*100-1/i1X*100:+.1f}%" if i1X else "-",
-                        f"{prob_X2*100-1/iX2*100:+.1f}%" if iX2 else "-",
-                        f"{prob_12*100-1/i12*100:+.1f}%" if i12 else "-"],
+            'Implied %': [f"{pm1*100:.1f}%",f"{pmX*100:.1f}%",f"{pm2*100:.1f}%",
+                          f"{prob_1X*100:.1f}%",f"{prob_X2*100:.1f}%",f"{prob_12*100:.1f}%"],
         }
-        st.dataframe(comp, use_container_width=True, hide_index=True)
-
-        st.markdown("---")
-        st.markdown("### 💰 Fair Odds — Τι Έπρεπε να Είναι οι Αποδόσεις")
-
-        # Stats-only probabilities (χωρίς blend με αποδόσεις)
-        sp1, spX, sp2 = stat_p1, stat_pX, stat_p2
-
-        def fair_odd(p):
-            return f"{1/p:.2f}" if p > 0.01 else "-"
-
-        def value_icon(bookie, fair_p):
-            if fair_p <= 0.01: return "—"
-            v = (bookie / (1/fair_p) - 1) * 100
-            if v > 20:   return f"🔥 +{v:.0f}%"
-            elif v > 10: return f"✅ +{v:.0f}%"
-            elif v < -10: return f"❌ {v:.0f}%"
-            else:         return f"⚖️ {v:+.0f}%"
-
-        margin = (1/odd1 + 1/oddX + 1/odd2 - 1) * 100
-
-        fair_data = {
-            'Σημείο':         ['1', 'X', '2'],
-            'Bookie':         [f"{odd1:.2f}", f"{oddX:.2f}", f"{odd2:.2f}"],
-            'Fair (μοντέλο)': [fair_odd(p1), fair_odd(pX), fair_odd(p2)],
-            'Fair (stats)':   [fair_odd(sp1), fair_odd(spX), fair_odd(sp2)],
-            'Value vs model': [value_icon(odd1,p1), value_icon(oddX,pX), value_icon(odd2,p2)],
-            'Value vs stats': [value_icon(odd1,sp1), value_icon(oddX,spX), value_icon(odd2,sp2)],
-        }
-        st.dataframe(fair_data, use_container_width=True, hide_index=True)
-        st.caption(f"Bookie margin: {margin:.1f}% | 🔥 >20% value | ✅ 10-20% value | ❌ overpriced | ⚖️ fair")
-
-        # Value alert
-        best_val = max(
-            [(odd1,p1,'1'),(oddX,pX,'X'),(odd2,p2,'2')],
-            key=lambda x: (x[0]/(1/x[1])-1) if x[1]>0.01 else -99
-        )
-        best_val_stats = max(
-            [(odd1,sp1,'1'),(oddX,spX,'X'),(odd2,sp2,'2')],
-            key=lambda x: (x[0]/(1/x[1])-1) if x[1]>0.01 else -99
-        )
-        val_pct = (best_val[0]/(1/best_val[1])-1)*100 if best_val[1]>0.01 else 0
-        val_pct_s = (best_val_stats[0]/(1/best_val_stats[1])-1)*100 if best_val_stats[1]>0.01 else 0
-
-        if val_pct_s > 20:
-            st.markdown(f"""
-            <div style="background:#fff3cd;border:2px solid #f39c12;border-radius:10px;
-                        padding:12px;margin-top:10px;text-align:center;font-weight:bold;">
-                🔥 VALUE ALERT: Το <b>{best_val_stats[2]}</b> ({best_val_stats[0]:.2f})
-                έχει +{val_pct_s:.0f}% value βάσει stats!
-                Fair τιμή: {fair_odd(best_val_stats[1])}
-            </div>""", unsafe_allow_html=True)
-        elif val_pct > 10:
-            st.markdown(f"""
-            <div style="background:#d4edda;border:2px solid #2ecc71;border-radius:10px;
-                        padding:12px;margin-top:10px;text-align:center;font-weight:bold;">
-                ✅ VALUE: Το <b>{best_val[2]}</b> ({best_val[0]:.2f})
-                έχει +{val_pct:.0f}% value βάσει μοντέλου.
-                Fair τιμή: {fair_odd(best_val[1])}
-            </div>""", unsafe_allow_html=True)
-
-        st.markdown("---")
-        st.markdown("### 💡 Συμβουλή Διαχείρισης Ρίσκου")
-        st.info(get_risk_advice(conf, total, top_two_prob, main_point, top_two))
+        st.dataframe(comp_odds, use_container_width=True, hide_index=True)
+        margin = (1/odd1+1/oddX+1/odd2-1)*100
+        st.caption(f"Bookie margin: {margin:.1f}%")
     else:
         st.info("ℹ️ Ανεπαρκή δεδομένα (χρειάζονται ≥6 παιχνίδια)")
 
