@@ -472,7 +472,7 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 # ==============================
 if total >= 6 or total == 0:
     smart_dc_label = f'<div style="font-size:0.85rem;color:#8e44ad;margin-top:5px;">⚡ Ισοδύναμα Outcomes: X &amp; {sorted_stats[2][0]} πολύ κοντά ({gap_2nd_3rd*100:.1f}% διαφορά)</div>' if smart_dc else ''
-    odds_only_label = '<div style="font-size:0.85rem;color:#e67e22;margin-top:5px;">📊 Πρόταση βάσει αποδόσεων μόνο</div>' if total == 0 else ''
+    conf_display = f'<div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>' if total >= 6 else '<div style="font-size:1rem;color:#e67e22;margin-top:10px;font-weight:bold;">📊 Πρόταση βάσει αποδόσεων μόνο — χωρίς στατιστικά</div>'
     st.markdown(f"""
     <div class="result-card">
         <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.5</div>
@@ -480,19 +480,18 @@ if total >= 6 or total == 0:
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two}&nbsp;<span class="double-percent" style="color:{dc_color};">{top_two_prob:.1f}%</span>)</span>
         </div>
-        <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
+        {conf_display}
         <div style="margin-top:15px;font-family:monospace;font-size:1rem;color:#555;">
             [MODEL]: 1: {p1*100:.1f}% | X: {pX*100:.1f}% | 2: {p2*100:.1f}%
         </div>
         {smart_dc_label}
-        {odds_only_label}
+    </div>
     """, unsafe_allow_html=True)
     if use_total_stats and total >= 6:
         st.markdown(f"""
         <div style="font-size:0.9rem;color:#666;margin-top:5px;text-align:center;">
             📈 Συνδυασμός: 70% τελευταία 5 + 30% σύνολο ({total_games_all} αγώνες)
         </div>""", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 else:
     st.markdown(f"""
     <div class="result-card">
