@@ -815,6 +815,3 @@ st.caption(
     "Geometric Stats Model | Entropy Confidence | "
     "Graduated Trust | Smart DC (X πάντα μέσα αν gap<5%) | Fair Odds Table"
 )
-    "Geometric Stats Model | Entropy Confidence | "
-    "Graduated Trust | Smart Double Chance | Fair Odds Table"
-)
