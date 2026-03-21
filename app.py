@@ -483,6 +483,40 @@ if total >= 6 and trust_level:
         f'<b>Αξιοπιστία Αποδόσεων: {trust_level}</b> — {trust_msg}</div>',
         unsafe_allow_html=True
     )
+
+# ==============================
+# VALUE ALERT BANNER
+# ==============================
+if total >= 6:
+    # Υπολογισμός value βάσει stats
+    vals_stats = [(odd1,stat_p1,"1"),(oddX,stat_pX,"X"),(odd2,stat_p2,"2")]
+    vals_model = [(odd1,p1,"1"),(oddX,pX,"X"),(odd2,p2,"2")]
+    best_s = max(vals_stats, key=lambda x: (x[0]/(1/x[1])-1) if x[1]>0.01 else -99)
+    best_m = max(vals_model, key=lambda x: (x[0]/(1/x[1])-1) if x[1]>0.01 else -99)
+    val_s = (best_s[0]/(1/best_s[1])-1)*100 if best_s[1]>0.01 else 0
+    val_m = (best_m[0]/(1/best_m[1])-1)*100 if best_m[1]>0.01 else 0
+
+    if val_s > 20:
+        fair_s = f"{1/best_s[1]:.2f}" if best_s[1]>0.01 else "-"
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,#f39c12,#e67e22);
+                    color:white;padding:14px 18px;border-radius:10px;
+                    margin:8px 0;text-align:center;font-weight:bold;font-size:1rem;
+                    box-shadow:0 3px 10px rgba(243,156,18,0.4);">
+            🔥 VALUE ALERT — <b>{best_s[2]} ({best_s[0]:.2f})</b>:
+            +{val_s:.0f}% value βάσει stats | Fair τιμή: <b>{fair_s}</b>
+        </div>""", unsafe_allow_html=True)
+    elif val_m > 10:
+        fair_m = f"{1/best_m[1]:.2f}" if best_m[1]>0.01 else "-"
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,#27ae60,#2ecc71);
+                    color:white;padding:14px 18px;border-radius:10px;
+                    margin:8px 0;text-align:center;font-weight:bold;font-size:1rem;
+                    box-shadow:0 3px 10px rgba(46,204,113,0.4);">
+            ✅ VALUE — <b>{best_m[2]} ({best_m[0]:.2f})</b>:
+            +{val_m:.0f}% value βάσει μοντέλου | Fair τιμή: <b>{fair_m}</b>
+        </div>""", unsafe_allow_html=True)
+
 if warning:
     st.markdown(f'<div class="warning-box">{warning}</div>', unsafe_allow_html=True)
 
