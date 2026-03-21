@@ -528,20 +528,45 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
     dc_reasons = get_dc_reasons(hd_c, ad_c, h_t, a_t)
 
     if total >= 6:
-        st.markdown("### 📊 Ανάλυση Πρότασης")
-        h_draw_disp = hd_c/h_t if h_t>0 else 0
-        a_draw_disp = ad_c/a_t if a_t>0 else 0
-        st.markdown(f"""
-        - **Κύριο σημείο:** {main_point} ({sorted_stats[0][1]*100:.1f}%)
-        - **Διπλή ευκαιρία:** {top_two} ({top_two_prob:.1f}%)
-        - **Draw affinity:** Γηπεδούχος {h_draw_disp*100:.0f}% | Φιλοξενούμενος {a_draw_disp*100:.0f}%
-        - **Ιστορικό draw factor:** {hist_factor:.2f} {'📈' if hist_factor>1.05 else '📉' if hist_factor<0.95 else '⚖️'}
-        """)
+        # [4] Card για την κύρια πρόταση top_two
+        i1X = 1/(1/odd1+1/oddX) if odd1>1.01 and oddX>1.01 else 0
+        iX2 = 1/(1/oddX+1/odd2) if oddX>1.01 and odd2>1.01 else 0
+        i12 = 1/(1/odd1+1/odd2) if odd1>1.01 and odd2>1.01 else 0
+        dc_odds_map = {'1X': i1X, 'X1': i1X, 'X2': iX2, '2X': iX2, '12': i12, '21': i12}
+        main_dc_odd = dc_odds_map.get(top_two, 0)
+        main_dc_val = (top_two_prob/100 - (1/main_dc_odd if main_dc_odd>0 else 0)) * 100
+        smart_label = " ⚡ Smart DC" if smart_dc else ""
 
-    if dc_recs and total >= 6:
-        st.markdown("### 🎯 Double Chance Opportunities")
-        for rec in dc_recs:
-            if rec['pick'] != top_two:
+        st.markdown("### 🎯 Κύρια Πρόταση")
+        st.markdown(f"""
+        <div class="dc-card" style="background:#e8f0fe;border-left-color:#1e3c72;border-left-width:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <span style="font-size:2.2rem;font-weight:900;color:#1e3c72;">{top_two}</span>
+                    <span style="font-size:1.2rem;margin-left:10px;background:white;
+                          padding:3px 12px;border-radius:15px;color:{dc_color};">
+                          {top_two_prob:.1f}%</span>
+                    <span style="font-size:0.85rem;color:#666;margin-left:8px;">{smart_label}</span>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:1.8rem;font-weight:bold;">
+                        {f"{main_dc_odd:.2f}" if main_dc_odd>0 else "—"}</div>
+                    <div style="font-size:0.9rem;color:#{'2ecc71' if main_dc_val>5 else 'e74c3c' if main_dc_val<-5 else '95a5a6'};">
+                        {f'+{main_dc_val:.1f}% value' if main_dc_val>0 else f'{main_dc_val:.1f}% value'}</div>
+                </div>
+            </div>
+            <div style="margin-top:8px;color:#34495e;font-size:0.95rem;">
+                📌 Κύριο: <b>{main_point}</b> ({sorted_stats[0][1]*100:.1f}%) |
+                Κάλυψη: <b>{sorted_stats[1][0]}</b> ({sorted_stats[1][1]*100:.1f}%)
+                {'| <b>'+sorted_stats[2][0]+'</b> ('+f"{sorted_stats[2][1]*100:.1f}%) πολύ κοντά!" if smart_dc else ''}
+            </div>
+        </div>""", unsafe_allow_html=True)
+
+        # Άλλες DC ευκαιρίες
+        other_recs = [r for r in dc_recs if r['pick'] != top_two]
+        if other_recs:
+            st.markdown("### 🎯 Άλλες Ευκαιρίες")
+            for rec in other_recs:
                 bg_c = "#e8f5e9" if rec['odds']>=1.80 else "#fff3e0" if rec['odds']>=1.50 else "#e3f2fd"
                 br_c = "#2ecc71" if rec['odds']>=1.80 else "#f39c12" if rec['odds']>=1.50 else "#3498db"
                 vt   = f"🔥 +{rec['value']:.1f}%" if rec['value']>10 else f"📈 +{rec['value']:.1f}%" if rec['value']>5 else f"⚖️ +{rec['value']:.1f}%"
@@ -552,7 +577,8 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <div>
                             <span style="font-size:2rem;font-weight:bold;color:#1e3c72;">{rec['pick']}</span>
-                            <span style="font-size:1.2rem;margin-left:10px;background:white;padding:3px 10px;border-radius:15px;">{rec['prob']:.1f}%</span>
+                            <span style="font-size:1.2rem;margin-left:10px;background:white;
+                                  padding:3px 10px;border-radius:15px;">{rec['prob']:.1f}%</span>
                         </div>
                         <div style="text-align:right;">
                             <div style="font-size:1.8rem;font-weight:bold;">{rec['odds']:.2f}</div>
@@ -562,30 +588,60 @@ with st.expander("🛡️ Double Chance Analysis", expanded=False):
                     <div style="margin-top:10px;color:#34495e;">📌 {rec['reason']}</div>
                     <div style="margin-top:5px;font-size:0.9rem;">Ρίσκο: {rl}</div>
                 </div>""", unsafe_allow_html=True)
+        else:
+            # [2] Εμφάνιση DC αποδόσεων όταν δεν υπάρχουν opportunities
+            st.markdown("### 📊 Αποδόσεις Double Chance")
+            st.markdown(f"""
+            <div style="display:flex;gap:10px;margin:10px 0;">
+                <div style="flex:1;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center;">
+                    <div style="font-size:1.3rem;font-weight:bold;color:#1e3c72;">1X</div>
+                    <div style="font-size:1.6rem;font-weight:bold;">{i1X:.2f if i1X>0 else '—'}</div>
+                    <div style="font-size:0.9rem;color:#666;">{(p1+pX)*100:.1f}%</div>
+                </div>
+                <div style="flex:1;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center;">
+                    <div style="font-size:1.3rem;font-weight:bold;color:#1e3c72;">X2</div>
+                    <div style="font-size:1.6rem;font-weight:bold;">{iX2:.2f if iX2>0 else '—'}</div>
+                    <div style="font-size:0.9rem;color:#666;">{(pX+p2)*100:.1f}%</div>
+                </div>
+                <div style="flex:1;background:#f8f9fa;border-radius:10px;padding:12px;text-align:center;">
+                    <div style="font-size:1.3rem;font-weight:bold;color:#1e3c72;">12</div>
+                    <div style="font-size:1.6rem;font-weight:bold;">{i12:.2f if i12>0 else '—'}</div>
+                    <div style="font-size:0.9rem;color:#666;">{(p1+p2)*100:.1f}%</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+        # Στατιστικά στοιχεία
+        if dc_reasons:
+            with st.expander("📊 Στατιστικά Στοιχεία", expanded=False):
+                for r in dc_reasons:
+                    st.markdown(f"- {r}")
+
     elif total < 6:
         st.info("ℹ️ Ανεπαρκή δεδομένα για ανάλυση double chance")
-    else:
-        st.info("ℹ️ Δεν εντοπίστηκαν άλλες ευκαιρίες double chance")
 
-    if dc_reasons and total >= 6:
-        with st.expander("📊 Στατιστικά Στοιχεία", expanded=False):
-            for r in dc_reasons:
-                st.markdown(f"- {r}")
-
-    if h_t>0 and a_t>0 and total>=6:
-        real_draw = (hd_c+ad_c)/(h_t+a_t)
-        st.markdown(f"**📊 Ποσοστό X στο μοντέλο:** {pX*100:.1f}%")
-        st.markdown(f"**📊 Πραγματικό draw rate (combined):** {real_draw*100:.1f}%")
-        st.markdown(f"**📊 Ιστορικό draw factor:** {hist_factor:.3f}")
-
-    st.markdown("---")
-    st.markdown("""
-    **💡 Double Chance Tips:**
-    - 🟢 **Χαμηλό ρίσκο**: Αποδόσεις 1.30-1.50, >75% πιθανότητα
-    - 🟡 **Μέτριο ρίσκο**: Αποδόσεις 1.50-1.80, >70% πιθανότητα
-    - 🔴 **Υψηλό ρίσκο**: Αποδόσεις 1.80+, >65% πιθανότητα + value
-    - ⚡ **12 (όχι ισοπαλία)**: Όταν X <15% στο μοντέλο
-    """)
+    # [3] Δυναμικά tips βάσει αγώνα
+    if total >= 6:
+        st.markdown("---")
+        st.markdown("### 💡 Tips για αυτόν τον αγώνα")
+        tips = []
+        if top_two_prob >= 80:
+            tips.append(f"🟢 **{top_two} ({top_two_prob:.1f}%)** — Πολύ υψηλή κάλυψη, ιδανικό για safe bet")
+        elif top_two_prob >= 60:
+            tips.append(f"🟡 **{top_two} ({top_two_prob:.1f}%)** — Καλή κάλυψη, κατάλληλο για normal bet")
+        else:
+            tips.append(f"🔴 **{top_two} ({top_two_prob:.1f}%)** — Χαμηλή κάλυψη, μικρό ποντάρισμα")
+        if pX*100 < 15:
+            tips.append(f"⚡ **Χαμηλό X ({pX*100:.1f}%)** — Πολύ μικρή πιθανότητα ισοπαλίας")
+        elif pX*100 > 30:
+            tips.append(f"🤝 **Υψηλό X ({pX*100:.1f}%)** — Αυξημένες πιθανότητες ισοπαλίας")
+        if smart_dc:
+            tips.append(f"⚡ **Smart DC ενεργό** — {sorted_stats[1][0]} & {sorted_stats[2][0]} σχεδόν ισοδύναμα ({gap_2nd_3rd*100:.1f}% διαφορά)")
+        if conf < 40:
+            tips.append("⚠️ **Χαμηλό confidence** — Εξετάστε αποφυγή ή πολύ μικρό ποντάρισμα")
+        if trust_level == "🔴 ΧΑΜΗΛΗ":
+            tips.append("🔴 **Μεγάλη ασυμφωνία stats-αποδόσεων** — Δείτε το Fair Odds table")
+        for tip in tips:
+            st.markdown(f"- {tip}")
 
 # ==============================
 # ANALYTICAL EXPLANATION
