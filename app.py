@@ -446,7 +446,7 @@ if total < 6:
     if total == 0:
         # Μόνο αποδόσεις
         main_point   = main_point  # κρατάμε την πρόταση από αποδόσεις
-        warning      = "📊 ΜΟΝΟ ΑΠΟΔΟΣΕΙΣ: Δεν έχουν εισαχθεί στατιστικά — πρόταση βάσει αποδόσεων μόνο"
+        warning      = ""  # εμφανίζεται ήδη μέσα στο result card
     else:
         main_point   = "🚫"
         top_two      = ""
@@ -458,12 +458,6 @@ else:
     elif total < 15: conf = min(conf, 72)
     if total < 8: warning = "⚠️ ΜΕΙΩΜΕΝΗ ΑΞΙΟΠΙΣΤΙΑ: Λίγα δεδομένα"
     color = "#2ecc71" if conf>=65 else "#f1c40f" if conf>=45 else "#e74c3c"
-
-    if pX*100 < 15:
-        warning = (f"📊 ΠΑΡΑΤΗΡΗΣΗ: Ισοπαλία πολύ χαμηλή ({pX*100:.1f}%). "
-                   f"Πρόταση {top_two} βασίζεται στα δύο επικρατέστερα.")
-    elif pX*100 < 20:
-        warning = f"📊 ΠΑΡΑΤΗΡΗΣΗ: Ισοπαλία στο {pX*100:.1f}%. Πρόταση {top_two} ως κάλυψη."
 
 st.session_state.current_proposal = f"{main_point} ({top_two})"
 
