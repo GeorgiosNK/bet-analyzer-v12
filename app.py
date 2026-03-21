@@ -6,7 +6,7 @@ import math
 # ==============================
 # CONFIG
 # ==============================
-st.set_page_config(page_title="Soccer Match Analyzer v5.2", page_icon="⚽", layout="centered")
+st.set_page_config(page_title="Soccer Match Analyzer v5.5", page_icon="⚽", layout="centered")
 
 # ==============================
 # JS INPUT FIX
@@ -405,14 +405,23 @@ stats_list   = [("1",p1),("X",pX),("2",p2)]
 sorted_stats = sorted(stats_list, key=lambda x: x[1], reverse=True)
 main_point   = sorted_stats[0][0]
 
-# [v5.3] Smart double chance:
-# Αν 2ο και 3ο outcome είναι πολύ κοντά (<5%), η διπλή ευκαιρία
-# καλύπτει 1ο + 3ο (πιο ασφαλής κάλυψη του αβέβαιου outcome)
+# [v5.5] Smart DC — Νέα λογική:
+# Αν gap μεταξύ 2ου και 3ου < 5% → η διπλή ΠΑΝΤΑ περιλαμβάνει το X
+# (ανεξαρτήτως κατάταξης — γιατί στατιστικά δεν μπορούμε να
+#  αποκλείσουμε το X όταν είναι σχεδόν ίσο με άλλο outcome)
+# Αν gap ≥ 5% → κανονικά 1ο+2ο
 gap_2nd_3rd = sorted_stats[1][1] - sorted_stats[2][1]
+prob_map    = {"1": p1, "X": pX, "2": p2}
+
 if gap_2nd_3rd < 0.05:
-    top_two      = sorted_stats[0][0] + sorted_stats[2][0]
-    top_two_prob = (sorted_stats[0][1] + sorted_stats[2][1]) * 100
-    smart_dc     = True
+    if main_point != "X":
+        top_two      = main_point + "X"
+        top_two_prob = (prob_map[main_point] + pX) * 100
+    else:
+        # Κύριο είναι ήδη X → 2ο στη διπλή
+        top_two      = "X" + sorted_stats[1][0]
+        top_two_prob = (pX + sorted_stats[1][1]) * 100
+    smart_dc = True
 else:
     top_two      = sorted_stats[0][0] + sorted_stats[1][0]
     top_two_prob = (sorted_stats[0][1] + sorted_stats[1][1]) * 100
@@ -451,7 +460,7 @@ if total >= 6:
     smart_dc_label = f'<div style="font-size:0.85rem;color:#8e44ad;margin-top:5px;">⚡ Smart DC: 2ο &amp; 3ο outcome πολύ κοντά ({gap_2nd_3rd*100:.1f}% διαφορά)</div>' if smart_dc else ''
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.4</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.5</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two}&nbsp;<span class="double-percent" style="color:{dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -471,7 +480,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.4</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.5</div>
         <div class="main-proposal"><span class="main-number">{main_point}</span></div>
         <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
     </div>""", unsafe_allow_html=True)
@@ -785,7 +794,7 @@ if total >= 6:
         textposition='inside', textfont=dict(color="white",size=14)
     ))
     fig.add_trace(go.Bar(
-        name='Model v5.4 %', x=['1','X','2'], y=[p1*100,pX*100,p2*100],
+        name='Model v5.5 %', x=['1','X','2'], y=[p1*100,pX*100,p2*100],
         marker_color='#2ecc71',
         text=[f"<b>{p1*100:.1f}%</b>",f"<b>{pX*100:.1f}%</b>",f"<b>{p2*100:.1f}%</b>"],
         textposition='inside', textfont=dict(color="white",size=14)
@@ -802,7 +811,10 @@ else:
 
 st.markdown("---")
 st.caption(
-    "Soccer Match Analyzer v5.4 — "
+    "Soccer Match Analyzer v5.5 — "
+    "Geometric Stats Model | Entropy Confidence | "
+    "Graduated Trust | Smart DC (X πάντα μέσα αν gap<5%) | Fair Odds Table"
+)
     "Geometric Stats Model | Entropy Confidence | "
     "Graduated Trust | Smart Double Chance | Fair Odds Table"
 )
