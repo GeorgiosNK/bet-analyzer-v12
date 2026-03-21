@@ -406,7 +406,7 @@ sorted_stats = sorted(stats_list, key=lambda x: x[1], reverse=True)
 main_point   = sorted_stats[0][0]
 top_two      = sorted_stats[0][0] + sorted_stats[1][0]
 top_two_prob = (sorted_stats[0][1] + sorted_stats[1][1]) * 100
-dc_color     = "#2ecc71" if top_two_prob>=65 else "#f1c40f" if top_two_prob>=45 else "#e74c3c"
+dc_color     = "#2ecc71" if top_two_prob>=80 else "#f1c40f" if top_two_prob>=60 else "#e74c3c"
 
 warning = ""
 conf    = 0
