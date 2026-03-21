@@ -404,9 +404,21 @@ else:
 stats_list   = [("1",p1),("X",pX),("2",p2)]
 sorted_stats = sorted(stats_list, key=lambda x: x[1], reverse=True)
 main_point   = sorted_stats[0][0]
-top_two      = sorted_stats[0][0] + sorted_stats[1][0]
-top_two_prob = (sorted_stats[0][1] + sorted_stats[1][1]) * 100
-dc_color     = "#2ecc71" if top_two_prob>=80 else "#f1c40f" if top_two_prob>=60 else "#e74c3c"
+
+# [v5.3] Smart double chance:
+# Αν 2ο και 3ο outcome είναι πολύ κοντά (<5%), η διπλή ευκαιρία
+# καλύπτει 1ο + 3ο (πιο ασφαλής κάλυψη του αβέβαιου outcome)
+gap_2nd_3rd = sorted_stats[1][1] - sorted_stats[2][1]
+if gap_2nd_3rd < 0.05:
+    top_two      = sorted_stats[0][0] + sorted_stats[2][0]
+    top_two_prob = (sorted_stats[0][1] + sorted_stats[2][1]) * 100
+    smart_dc     = True
+else:
+    top_two      = sorted_stats[0][0] + sorted_stats[1][0]
+    top_two_prob = (sorted_stats[0][1] + sorted_stats[1][1]) * 100
+    smart_dc     = False
+
+dc_color = "#2ecc71" if top_two_prob>=80 else "#f1c40f" if top_two_prob>=60 else "#e74c3c"
 
 warning = ""
 conf    = 0
@@ -436,9 +448,10 @@ st.session_state.current_proposal = f"{main_point} ({top_two})"
 # UI OUTPUT — MAIN CARD
 # ==============================
 if total >= 6:
+    smart_dc_label = f'<div style="font-size:0.85rem;color:#8e44ad;margin-top:5px;">⚡ Smart DC: 2ο &amp; 3ο outcome πολύ κοντά ({gap_2nd_3rd*100:.1f}% διαφορά)</div>' if smart_dc else ''
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.2</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.3</div>
         <div class="main-proposal">
             <span class="main-number">{main_point}</span>
             <span class="double-chance">({top_two}&nbsp;<span class="double-percent" style="color:{dc_color};">{top_two_prob:.1f}%</span>)</span>
@@ -447,6 +460,7 @@ if total >= 6:
         <div style="margin-top:15px;font-family:monospace;font-size:1rem;color:#555;">
             [MODEL]: 1: {p1*100:.1f}% | X: {pX*100:.1f}% | 2: {p2*100:.1f}%
         </div>
+        {smart_dc_label}
     """, unsafe_allow_html=True)
     if use_total_stats:
         st.markdown(f"""
@@ -457,7 +471,7 @@ if total >= 6:
 else:
     st.markdown(f"""
     <div class="result-card">
-        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.2</div>
+        <div style="color:gray;font-weight:bold;margin-bottom:5px;">📊 Soccer Match Analyzer v5.3</div>
         <div class="main-proposal"><span class="main-number">{main_point}</span></div>
         <div style="font-size:1.8rem;font-weight:bold;color:{color};margin-top:10px;">{conf}% Confidence</div>
     </div>""", unsafe_allow_html=True)
@@ -633,7 +647,7 @@ else:
 
 st.markdown("---")
 st.caption(
-    "Soccer Match Analyzer v5.2 — "
-    "Geometric Stats Model (draw affinity) | "
-    "Entropy Confidence | Graduated Trust | Historical Draw Fine-tune"
+    "Soccer Match Analyzer v5.3 — "
+    "Geometric Stats Model | Entropy Confidence | "
+    "Graduated Trust | Smart Double Chance"
 )
